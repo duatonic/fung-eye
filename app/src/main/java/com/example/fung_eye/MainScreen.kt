@@ -34,31 +34,36 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.fung_eye.ui.theme.FungEyeTheme
 
+
+// --- LANGKAH 1: PERBARUI DEFINISI FUNGSI MAINSCREEN ---
 @Composable
-fun MainScreen(onNavigateToIdentify: () -> Unit, onNavigateToChatbot: () -> Unit) {    FungEyeTheme {
+fun MainScreen(
+    onNavigateToIdentify: () -> Unit,
+    onNavigateToChatbot: () -> Unit,
+    onNavigateToSettings: () -> Unit
+) {
+    FungEyeTheme {
         var isVisible by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             isVisible = true
         }
 
         Scaffold(
-            containerColor = Color(0xFFF4F4F4),
-            bottomBar = { AppBottomNavigation(isVisible) }
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+            // --- LANGKAH 2: TERUSKAN onNavigateToSettings KE BOTTOM NAVIGATION ---
+            bottomBar = { AppBottomNavigation(isVisible, onNavigateToSettings = onNavigateToSettings) }
         ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // Top card with entry animation
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = slideInVertically(initialOffsetY = { -it }) + fadeIn()
                 ) {
                     TopImageCard()
                 }
-
-                // --- NEW DESCRIPTION BOX ADDED HERE ---
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(animationSpec = spring(stiffness = 50f))
@@ -66,9 +71,8 @@ fun MainScreen(onNavigateToIdentify: () -> Unit, onNavigateToChatbot: () -> Unit
                     DescriptionBox()
                 }
 
-                Spacer(modifier = Modifier.weight(1f)) // Pushes the purple box to the bottom
+                Spacer(modifier = Modifier.weight(1f))
 
-                // Bottom container with entry animation
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = slideInVertically(
@@ -81,22 +85,25 @@ fun MainScreen(onNavigateToIdentify: () -> Unit, onNavigateToChatbot: () -> Unit
                             .fillMaxWidth()
                             .height(180.dp)
                             .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                            .background(Color(0xFFEEE6FF)) // light purple
+                            .background(MaterialTheme.colorScheme.primaryContainer) // Menggunakan warna tema
                             .padding(top = 32.dp)
                     ) {
-                        ActionButtonsRow(onNavigateToIdentify, onNavigateToChatbot)                    }
+                        // --- LANGKAH 2: TERUSKAN onNavigateToChatbot KE ACTIONBUTTONSROW ---
+                        ActionButtonsRow(onNavigateToIdentify, onNavigateToChatbot)
+                    }
                 }
             }
         }
     }
 }
 
+
 @Composable
 fun TopImageCard() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp) // Adjusted height
+            .height(320.dp)
             .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
             .shadow(elevation = 8.dp, shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
     ) {
@@ -165,7 +172,6 @@ fun TopImageCard() {
     }
 }
 
-// --- NEW COMPOSABLE FOR THE DESCRIPTION BOX ---
 @Composable
 fun DescriptionBox() {
     Row(
@@ -174,31 +180,32 @@ fun DescriptionBox() {
             .fillMaxWidth()
             .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp))
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Default.Info,
             contentDescription = "Info",
-            tint = Color(0xFF6A0DAD), // Purple Icon
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(32.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = "Aplikasi ini membantu Anda mengidentifikasi jamur lewat foto, serta menyediakan katalog dan chatbot untuk informasi lebih lanjut.",
             fontSize = 14.sp,
-            color = Color.DarkGray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             lineHeight = 20.sp
         )
     }
 }
 
 
+// --- LANGKAH 3: PERBARUI DEFINISI DAN LOGIKA ACTIONBUTTONSROW ---
 @Composable
 fun ActionButtonsRow(
     onNavigateToIdentify: () -> Unit,
-    onNavigateToChatbot: () -> Unit // <-- Tambahkan parameter ini
+    onNavigateToChatbot: () -> Unit // <-- Parameter sudah ada
 ) {
     var selectedButton by remember { mutableStateOf("Katalog Jamur") }
     val context = LocalContext.current
@@ -226,10 +233,7 @@ fun ActionButtonsRow(
                     when (id) {
                         "Scan Jamur" -> onNavigateToIdentify()
                         "Katalog Jamur" -> Toast.makeText(context, "Membuka Katalog...", Toast.LENGTH_SHORT).show()
-
-                        // --- MULAI PERUBAHAN DI SINI ---
-                        "FungEye ChatBot" -> onNavigateToChatbot() // Panggil fungsi navigasi
-                        // --- SELESAI PERUBAHAN ---
+                        "FungEye ChatBot" -> onNavigateToChatbot() // <-- Gunakan di sini
                     }
                 }
             )
@@ -248,8 +252,8 @@ fun ActionButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale = if (isPressed) 0.95f else 1f
 
-    val backgroundColor = if (isSelected) Color.White else Color.Transparent
-    val contentColor = if (isSelected) Color.Black else Color.Gray
+    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     val shadowElevation = if (isSelected) 6.dp else 0.dp
 
     Column(
@@ -271,8 +275,9 @@ fun ActionButton(
 }
 
 
+// --- LANGKAH 3: PERBARUI DEFINISI DAN LOGIKA APPBOTTOMNAVIGATION ---
 @Composable
-fun AppBottomNavigation(isVisible: Boolean) {
+fun AppBottomNavigation(isVisible: Boolean, onNavigateToSettings: () -> Unit) {
     val context = LocalContext.current
 
     AnimatedVisibility(
@@ -292,24 +297,24 @@ fun AppBottomNavigation(isVisible: Boolean) {
                     .fillMaxWidth()
                     .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 24.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { Toast.makeText(context, "You are already home", Toast.LENGTH_SHORT).show() }) {
+                IconButton(onClick = { /* Already on home */ }) {
                     Icon(
                         imageVector = Icons.Default.Home,
                         contentDescription = "Home",
-                        tint = Color(0xFF00A2E8),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
                     )
                 }
-                IconButton(onClick = { Toast.makeText(context, "Membuka Pengaturan...", Toast.LENGTH_SHORT).show() }) {
+                IconButton(onClick = onNavigateToSettings) { // <-- Gunakan di sini
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Settings",
-                        tint = Color.Gray,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(28.dp)
                     )
                 }

@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +37,11 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -50,44 +56,82 @@ import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+// --- ADD SETTINGS SCREEN TO NAVIGATION ---
 sealed class Screen {
     object Splash : Screen()
     object Main : Screen()
     object Identify : Screen()
+    object Settings : Screen()
 }
 
-
 class MainActivity : ComponentActivity() {
+    // Instantiate the ViewModel at the Activity level
+    private val settingsViewModel: SettingsViewModel by viewModels()
+
+    // Di dalam class MainActivity
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            val settingsViewModel: SettingsViewModel by viewModels()
+            val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
             var currentScreen by remember { mutableStateOf<Screen>(Screen.Splash) }
 
-            LaunchedEffect(Unit) {
-                delay(3000) // 3 seconds delay for the splash screen
-                currentScreen = Screen.Main
+            FungEyeTheme(darkTheme = isDarkTheme) {
+                LaunchedEffect(Unit) {
+                    delay(2000) // Splash screen delay
+                    currentScreen = Screen.Main
+                }
+
+                // --- INI ADALAH BLOK WHEN YANG SUDAH DIPERBAIKI DAN DIGABUNGKAN ---
+                when (currentScreen) {
+                    is Screen.Splash -> SplashScreen()
+
+                    is Screen.Main -> MainScreen(
+                        onNavigateToIdentify = { currentScreen = Screen.Identify },
+                        onNavigateToSettings = { currentScreen = Screen.Settings },
+                        onNavigateToChatbot = {
+                            // Aksi untuk membuka ChatbotActivity
+                            val intent = Intent(this, ChatbotActivity::class.java)
+                            startActivity(intent)
+                        }
+                    )
+
+                    is Screen.Identify -> FungEyeApp(
+                        onNavigateHome = { currentScreen = Screen.Main }
+                    )
+
+                    is Screen.Settings -> SettingsScreen(
+                        settingsViewModel = settingsViewModel,
+                        onNavigateBack = { currentScreen = Screen.Main }
+                    )
+                }
             }
+        }
+    }
 
-            when (currentScreen) {
-                is Screen.Splash -> SplashScreen { currentScreen = Screen.Main }
 
-                // --- MULAI PERBAIKAN ---
-                is Screen.Main -> MainScreen(
-                    onNavigateToIdentify = {
-                        // Aksi untuk pindah ke layar identifikasi (FungEyeApp)
-                        currentScreen = Screen.Identify
-                    },
-                    onNavigateToChatbot = {
-                        // Aksi untuk membuka ChatbotActivity
-                        // (Kita asumsikan Anda ingin membuka Activity baru untuk Chatbot)
-                        val intent = Intent(this, ChatbotActivity::class.java)
-                        startActivity(intent)
-                    }
-                )
-                // --- SELESAI PERBAIKAN ---
-
-                is Screen.Identify -> FungEyeApp(onNavigateHome = { currentScreen = Screen.Main })
-            }
+@Composable
+fun SplashScreen() {
+    FungEyeTheme {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "FungEye Logo",
+                modifier = Modifier.size(200.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "FungEye",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
@@ -106,7 +150,7 @@ suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCoroutin
 @Composable
 fun FungEyeApp(
     fungEyeViewModel: FungEyeViewModel = viewModel(),
-    onNavigateHome: () -> Unit // <-- Add this parameter to the function signature
+    onNavigateHome: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -163,34 +207,19 @@ fun FungEyeApp(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("🍄 Fung-Eye", fontWeight = FontWeight.Bold) },
+                    title = { Text("🍄 Identifikasi Jamur", fontWeight = FontWeight.Bold) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateHome) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 )
             },
-            bottomBar = {
-                BottomAppBar(
-                    containerColor = Color.White
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        // --- MAKE THE ICON CLICKABLE ---
-                        // Wrap the Icon with an IconButton
-                        IconButton(onClick = onNavigateHome) {
-                            Icon(
-                                imageVector = Icons.Default.Home,
-                                contentDescription = "Home",
-                                modifier = Modifier.size(40.dp),
-                                tint = Color.Gray
-                            )
-                        }
-                    }
-                }
-            }
         ) { paddingValues ->
             LazyColumn(
                 modifier = Modifier
@@ -200,27 +229,16 @@ fun FungEyeApp(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ... (The rest of your LazyColumn items remain unchanged)
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "Pendeteksi Jamur",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.SemiBold,
-
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                item {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(300.dp)
-                            .padding(8.dp)
+                            .clip(RoundedCornerShape(16.dp))
                             .border(
                                 BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                                shape = MaterialTheme.shapes.medium
+                                shape = RoundedCornerShape(16.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -232,7 +250,10 @@ fun FungEyeApp(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            Text("Ambil atau pilih foto jamur", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Pilih gambar jamur", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
@@ -240,7 +261,7 @@ fun FungEyeApp(
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Button(
                             onClick = {
@@ -252,11 +273,11 @@ fun FungEyeApp(
                                     }
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                            modifier = Modifier.weight(1f).height(50.dp)
                         ) {
-                            Icon(Icons.Filled.CameraAlt, contentDescription = "Take Photo", tint = MaterialTheme.colorScheme.onSecondary)
+                            Icon(Icons.Filled.CameraAlt, contentDescription = "Take Photo")
                             Spacer(Modifier.width(8.dp))
-                            Text("Ambil Foto", color = MaterialTheme.colorScheme.onSecondary)
+                            Text("Ambil Foto")
                         }
 
                         Button(
@@ -269,52 +290,15 @@ fun FungEyeApp(
                                     }
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                            modifier = Modifier.weight(1f).height(50.dp)
                         ) {
-                            Icon(Icons.Filled.PhotoLibrary, contentDescription = "From Gallery", tint = MaterialTheme.colorScheme.onSecondary)
+                            Icon(Icons.Filled.PhotoLibrary, contentDescription = "From Gallery")
                             Spacer(Modifier.width(8.dp))
-                            Text("Ambil Dari Galeri", color = MaterialTheme.colorScheme.onSecondary)
+                            Text("Dari Galeri")
                         }
                     }
                 }
 
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                Toast.makeText(context, "Membuka Katalog Jamur...", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                Icons.Filled.MenuBook,
-                                contentDescription = "Katalog Jamur"
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Katalog")
-                        }
-
-                        Spacer(Modifier.width(16.dp))
-
-                        OutlinedButton(
-                            onClick = {
-                                Toast.makeText(context, "Membuka Chatbot...", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                Icons.Filled.Forum,
-                                contentDescription = "Chatbot"
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Chatbot")
-                        }
-                    }
-                }
 
                 item {
                     Button(
@@ -344,66 +328,59 @@ fun FungEyeApp(
                             }
                         },
                         enabled = imageUri != null && !isLoading,
-                        modifier = Modifier.fillMaxWidth(0.7f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiaryContainer)
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onTertiary,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 strokeWidth = 2.dp
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text("Analyzing...", color = MaterialTheme.colorScheme.onTertiary)
+                            Text("Menganalisa...")
                         } else {
-                            Text("Periksa Jamur", color = MaterialTheme.colorScheme.onTertiary, fontSize = 16.sp)
+                            Text("Periksa Jamur", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
                 if (analysisResult.isNotEmpty()) {
                     item {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "Hasil Analisa:",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 16.dp)
-                            )
-                            Text(
-                                text = analysisResult,
-                                fontSize = 18.sp,
-                                color = if (analysisResult.contains("Poisonous", ignoreCase = true))
-                                    MaterialTheme.colorScheme.error
-                                else if (analysisResult.contains("Not Poisonous", ignoreCase = true) ||
-                                    analysisResult.contains("Likely Not Poisonous", ignoreCase = true))
-                                    Color(0xFF006400) // Dark Green
-                                else MaterialTheme.colorScheme.onBackground,
-                                fontWeight = FontWeight.Medium
-                            )
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Hasil Analisa:",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = analysisResult,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (analysisResult.contains("beracun", ignoreCase = true))
+                                        MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }
 
                 item {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 8.dp)) {
-                        if (cameraPermissionState.shouldShowRationale || galleryPermissionState.shouldShowRationale) {
-                            Text(
-                                "Camera and/or Gallery permission is needed to select images. Please grant permissions in app settings if denied.",
-                                color = Color.Gray,
-                                fontSize = 12.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                        Text(
-                            text = "Disclaimer: Aplikasi Fung-Eye hanya untuk tujuan informasi. Jangan menjadikan aplikasi ini sebagai satu-satunya acuan untuk identifikasi kelayakan makan jamur. Kesalahan dalam mengidentifikasi bisa berakibat fatal. Selalu berkonsultasilah dengan pakar di bidangnya.",
-                            fontSize = 12.sp,
-                            color = Color.Gray,
-                            fontWeight = FontWeight.Light,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-                    }
+                    Text(
+                        text = "Disclaimer: Aplikasi Fung-Eye hanya untuk tujuan informasi. Jangan menjadikan aplikasi ini sebagai satu-satunya acuan untuk identifikasi kelayakan makan jamur. Kesalahan dalam mengidentifikasi bisa berakibat fatal. Selalu berkonsultasilah dengan pakar di bidangnya.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical=16.dp)
+                    )
                 }
             }
         }
@@ -430,7 +407,6 @@ fun CameraView(
     val imageCaptureUseCase: ImageCapture = remember { ImageCapture.Builder().build() }
     var cameraProvider: ProcessCameraProvider? by remember { mutableStateOf(null) }
 
-    // Get the camera provider once
     LaunchedEffect(Unit) {
         try {
             cameraProvider = context.getCameraProvider()
@@ -440,7 +416,6 @@ fun CameraView(
         }
     }
 
-    // Rebind use cases when provider or lensFacing changes
     LaunchedEffect(cameraProvider, lensFacing) {
         cameraProvider?.let { provider ->
             try {
@@ -469,21 +444,18 @@ fun CameraView(
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
 
-        // Top controls: Close and Switch Camera
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .padding(16.dp)
-                .background(Color.Black.copy(alpha = 0.3f), shape = MaterialTheme.shapes.medium)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .background(Color.Black.copy(alpha = 0.4f))
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onCloseCamera) {
                 Icon(Icons.Filled.Close, contentDescription = "Close Camera", tint = Color.White, modifier = Modifier.size(30.dp))
             }
-            Text("Camera Preview", color = Color.White, fontSize = 16.sp)
             IconButton(onClick = {
                 lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
             }) {
@@ -491,7 +463,6 @@ fun CameraView(
             }
         }
 
-        // Capture Button
         FloatingActionButton(
             onClick = {
                 val imageFile = File(
@@ -529,18 +500,17 @@ fun CameraView(
     }
 }
 
-// Helper function to create a temporary image file in app's internal cache. This is used when picking an image from the gallery to copy it before sending to API
 fun createTempImageFile(context: Context): File {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     val imageFileName = "TEMP_JPEG_${timeStamp}_"
-    // Use cache directory for temporary files
     val storageDir: File? = context.cacheDir
     if (storageDir != null && !storageDir.exists()) {
         storageDir.mkdirs()
     }
     return File.createTempFile(
-        imageFileName, // prefix
-        ".jpg", // suffix
-        storageDir // directory
+        imageFileName,
+        ".jpg",
+        storageDir
     )
+}
 }
