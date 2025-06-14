@@ -41,6 +41,7 @@ import coil.compose.AsyncImage
 import com.example.fung_eye.ui.theme.FungEyeTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
@@ -48,21 +49,34 @@ import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+sealed class Screen {
+    object Splash : Screen()
+    object Main : Screen()
+    object Identify : Screen()
+}
+
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            FungEyeTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    FungEyeApp()
-                }
+            var currentScreen by remember { mutableStateOf<Screen>(Screen.Splash) }
+
+            LaunchedEffect(Unit) {
+                delay(3000) // 3 seconds delay for the splash screen
+                currentScreen = Screen.Main
+            }
+
+            when (currentScreen) {
+                is Screen.Splash -> SplashScreen { currentScreen = Screen.Main }
+                is Screen.Main -> MainScreen { currentScreen = Screen.Identify }
+                // Pass a lambda to FungEyeApp that changes the screen back to Main
+                is Screen.Identify -> FungEyeApp(onNavigateHome = { currentScreen = Screen.Main })
             }
         }
     }
 }
+
 
 // Helper suspend function to get CameraProvider
 suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCoroutine { continuation ->
@@ -75,7 +89,10 @@ suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCoroutin
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun FungEyeApp(fungEyeViewModel: FungEyeViewModel = viewModel()) {
+fun FungEyeApp(
+    fungEyeViewModel: FungEyeViewModel = viewModel(),
+    onNavigateHome: () -> Unit // <-- Add this parameter to the function signature
+) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -85,14 +102,12 @@ fun FungEyeApp(fungEyeViewModel: FungEyeViewModel = viewModel()) {
 
     var showCameraPreview by remember { mutableStateOf(false) }
 
-    // Define output directory for CameraX
     val outputDirectory: File = remember {
         val mediaDir = context.filesDir.resolve("fung_eye_camerax_images")
-        mediaDir.mkdirs() // Create directory if it doesn't exist
+        mediaDir.mkdirs()
         mediaDir
     }
 
-    // Permission Handling
     val cameraPermissionState = rememberMultiplePermissionsState(
         permissions = listOf(Manifest.permission.CAMERA)
     )
@@ -104,7 +119,6 @@ fun FungEyeApp(fungEyeViewModel: FungEyeViewModel = viewModel()) {
         }
     )
 
-    // Activity Result Launcher for Gallery
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? ->
@@ -140,20 +154,40 @@ fun FungEyeApp(fungEyeViewModel: FungEyeViewModel = viewModel()) {
                         titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 )
+            },
+            bottomBar = {
+                BottomAppBar(
+                    containerColor = Color.White
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        // --- MAKE THE ICON CLICKABLE ---
+                        // Wrap the Icon with an IconButton
+                        IconButton(onClick = onNavigateHome) {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "Home",
+                                modifier = Modifier.size(40.dp),
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+                }
             }
         ) { paddingValues ->
-            // --- PERUBAHAN UTAMA: MENGGUNAKAN LAZYCOLUMN AGAR BISA DI-SCROLL ---
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 16.dp), // Padding horizontal untuk semua item
+                    .padding(horizontal = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Setiap grup elemen dibungkus dalam item()
+                // ... (The rest of your LazyColumn items remain unchanged)
                 item {
-                    Spacer(modifier = Modifier.height(16.dp)) // Spacer tambahan di atas
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         "Pendeteksi Jamur",
                         fontSize = 24.sp,
@@ -197,7 +231,7 @@ fun FungEyeApp(fungEyeViewModel: FungEyeViewModel = viewModel()) {
                             onClick = {
                                 coroutineScope.launch {
                                     if (cameraPermissionState.allPermissionsGranted) {
-                                        showCameraPreview = true // Show CameraX preview
+                                        showCameraPreview = true
                                     } else {
                                         cameraPermissionState.launchMultiplePermissionRequest()
                                     }
@@ -229,32 +263,28 @@ fun FungEyeApp(fungEyeViewModel: FungEyeViewModel = viewModel()) {
                     }
                 }
 
-                // --- KODE BARU DIMASUKKAN DI SINI ---
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Tombol untuk Katalog Jamur
                         OutlinedButton(
                             onClick = {
-                                // TODO: Tambahkan logika untuk membuka halaman Katalog
                                 Toast.makeText(context, "Membuka Katalog Jamur...", Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(
-                                Icons.Filled.MenuBook, // Ikon buku untuk katalog
+                                Icons.Filled.MenuBook,
                                 contentDescription = "Katalog Jamur"
                             )
                             Spacer(Modifier.width(8.dp))
                             Text("Katalog")
                         }
 
-                        Spacer(Modifier.width(16.dp)) // Jarak antar tombol
+                        Spacer(Modifier.width(16.dp))
 
-                        // Tombol untuk Tingkat Bahaya
                         OutlinedButton(
                             onClick = {
                                 Toast.makeText(context, "Membuka Chatbot...", Toast.LENGTH_SHORT).show()
@@ -262,7 +292,7 @@ fun FungEyeApp(fungEyeViewModel: FungEyeViewModel = viewModel()) {
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(
-                                Icons.Filled.Forum, // Ikon peringatan untuk bahaya
+                                Icons.Filled.Forum,
                                 contentDescription = "Chatbot"
                             )
                             Spacer(Modifier.width(8.dp))
@@ -270,7 +300,6 @@ fun FungEyeApp(fungEyeViewModel: FungEyeViewModel = viewModel()) {
                         }
                     }
                 }
-                // --- SELESAI KODE BARU ---
 
                 item {
                     Button(
@@ -352,7 +381,6 @@ fun FungEyeApp(fungEyeViewModel: FungEyeViewModel = viewModel()) {
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
-                        // Disclaimer Text
                         Text(
                             text = "Disclaimer: Aplikasi Fung-Eye hanya untuk tujuan informasi. Jangan menjadikan aplikasi ini sebagai satu-satunya acuan untuk identifikasi kelayakan makan jamur. Kesalahan dalam mengidentifikasi bisa berakibat fatal. Selalu berkonsultasilah dengan pakar di bidangnya.",
                             fontSize = 12.sp,
