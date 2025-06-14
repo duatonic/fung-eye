@@ -4,22 +4,19 @@ import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -29,9 +26,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.fung_eye.ui.theme.FungEyeTheme
+import kotlinx.coroutines.launch
 
 // Data class untuk merepresentasikan satu pesan chat
 data class ChatMessage(
+    val id: Long = System.currentTimeMillis(), // Tambahkan ID unik untuk setiap pesan
     val message: String,
     val isFromUser: Boolean
 )
@@ -50,19 +49,18 @@ class ChatbotActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatbotScreen() {
-    // Mendapatkan konteks untuk tombol kembali
     val context = LocalContext.current
     var textState by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
-    // Contoh data percakapan, bisa diganti dengan data dinamis nanti
-    val chatMessages = listOf(
-        ChatMessage("Hello FungiMate, how are you today?", true),
-        ChatMessage("Hello! I'm feeling fresh as a forest after rain. How can I assist you with fungi today?", false),
-        ChatMessage("How do I identify a harmful mushroom?", true),
-        ChatMessage("Harmful mushrooms often have distinct features like bright colors or unusual smells, but identification can be tricky. You can use the fungeye scan tool to get help, or would you like me to analyze a photo for you?", false),
-        ChatMessage("Oh, I'll try fungeye then", true),
-        ChatMessage("sure, ask again if there is any problem", false),
-    )
+    // --- PERUBAHAN 1: Hapus data hardcode dan mulai dengan daftar kosong ---
+    val chatMessages = remember { mutableStateListOf<ChatMessage>() }
+
+    // Tambahkan pesan sambutan dari bot saat layar pertama kali dibuka
+    LaunchedEffect(Unit) {
+        chatMessages.add(ChatMessage(message = "Halo! Saya FungiMate, asisten jamur Anda. Ada yang bisa saya bantu?", isFromUser = false))
+    }
 
     Scaffold(
         topBar = {
@@ -70,28 +68,27 @@ fun ChatbotScreen() {
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
-                            painter = painterResource(id = R.drawable.fungimatelogo), // <-- Change this name
+                            painter = painterResource(id = R.drawable.fungimatelogo),
                             contentDescription = "FungiMate Logo",
-                            modifier = Modifier.size(28.dp) // Adjust size as needed
+                            modifier = Modifier.size(28.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "FungiMate", // Nama chatbot
+                                text = "FungiMate",
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "• Online",
                                 fontSize = 12.sp,
-                                color = Color(0xFF34A853) // Warna hijau untuk status online
+                                color = Color(0xFF34A853)
                             )
                         }
                     }
                 },
                 navigationIcon = {
-                    // Tombol kembali
                     IconButton(onClick = {
-                        (context as? Activity)?.finish() // Menutup activity saat ini dan kembali
+                        (context as? Activity)?.finish()
                     }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Kembali")
                     }
@@ -110,38 +107,66 @@ fun ChatbotScreen() {
             )
         },
         bottomBar = {
-            // Bagian untuk mengetik pesan
             OutlinedTextField(
                 value = textState,
                 onValueChange = { newText ->
-                    textState = newText // <-- Perbarui state setiap kali ada ketikan baru
+                    textState = newText
                 },
-                placeholder = { Text("Write your message") },
+                placeholder = { Text("Tulis pesan Anda") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(24.dp),
                 leadingIcon = {
-                    Icon(Icons.Filled.Mic, contentDescription = "Voice Message")
+                    Icon(Icons.Filled.Mic, contentDescription = "Pesan Suara")
                 },
                 trailingIcon = {
-                    IconButton(onClick = { /* TODO: Aksi kirim pesan */ }) {
-                        Icon(Icons.Filled.Send, contentDescription = "Send Message", tint = MaterialTheme.colorScheme.primary)
+                    // --- PERUBAHAN 3: Tambahkan logika pengiriman pesan ---
+                    IconButton(
+                        onClick = {
+                            if (textState.isNotBlank()) {
+                                // Tambahkan pesan pengguna ke daftar
+                                val userMessage = ChatMessage(message = textState, isFromUser = true)
+                                chatMessages.add(userMessage)
+
+                                // Kosongkan input field
+                                textState = ""
+
+                                // Otomatis scroll ke pesan terbaru
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(chatMessages.size -1)
+                                }
+
+                                // TODO: Kirim `userMessage` ke API AI Anda di sini
+                                // dan tambahkan responsnya ke `chatMessages`
+                            }
+                        },
+                        enabled = textState.isNotBlank()
+                    ) {
+                        Icon(
+                            Icons.Filled.Send,
+                            contentDescription = "Kirim Pesan",
+                            tint = if (textState.isNotBlank()) MaterialTheme.colorScheme.primary else Color.Gray
+                        )
                     }
                 }
             )
         }
     ) { paddingValues ->
-        // Daftar percakapan yang bisa di-scroll
+        // --- PERUBAHAN 2: Gunakan ID unik sebagai key dan teruskan listState ---
         LazyColumn(
+            state = listState, // Tambahkan state untuk kontrol scroll
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
-            reverseLayout = true // Pesan baru muncul dari bawah
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            // Membalik daftar agar pesan terakhir ada di bawah
-            items(chatMessages.reversed()) { chat ->
+            items(
+                items = chatMessages,
+                key = { it.id } // Gunakan ID sebagai key untuk performa
+            ) { chat ->
                 MessageBubble(chatMessage = chat)
             }
         }
@@ -150,7 +175,6 @@ fun ChatbotScreen() {
 
 @Composable
 fun MessageBubble(chatMessage: ChatMessage) {
-    // Menentukan bubble chat ada di kanan (pengguna) atau kiri (bot)
     val horizontalArrangement = if (chatMessage.isFromUser) Arrangement.End else Arrangement.Start
     val bubbleColor = if (chatMessage.isFromUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
     val textColor = if (chatMessage.isFromUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -177,11 +201,12 @@ fun MessageBubble(chatMessage: ChatMessage) {
             Text(
                 text = chatMessage.message,
                 color = textColor,
-                modifier = Modifier.widthIn(max = 250.dp) // Batasi lebar bubble
+                modifier = Modifier.widthIn(max = 250.dp)
             )
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable
