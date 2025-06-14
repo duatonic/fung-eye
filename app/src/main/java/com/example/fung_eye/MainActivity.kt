@@ -1,6 +1,7 @@
 package com.example.fung_eye
 
 import android.Manifest
+import android.content.Intent
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
@@ -69,8 +70,22 @@ class MainActivity : ComponentActivity() {
 
             when (currentScreen) {
                 is Screen.Splash -> SplashScreen { currentScreen = Screen.Main }
-                is Screen.Main -> MainScreen { currentScreen = Screen.Identify }
-                // Pass a lambda to FungEyeApp that changes the screen back to Main
+
+                // --- MULAI PERBAIKAN ---
+                is Screen.Main -> MainScreen(
+                    onNavigateToIdentify = {
+                        // Aksi untuk pindah ke layar identifikasi (FungEyeApp)
+                        currentScreen = Screen.Identify
+                    },
+                    onNavigateToChatbot = {
+                        // Aksi untuk membuka ChatbotActivity
+                        // (Kita asumsikan Anda ingin membuka Activity baru untuk Chatbot)
+                        val intent = Intent(this, ChatbotActivity::class.java)
+                        startActivity(intent)
+                    }
+                )
+                // --- SELESAI PERBAIKAN ---
+
                 is Screen.Identify -> FungEyeApp(onNavigateHome = { currentScreen = Screen.Main })
             }
         }

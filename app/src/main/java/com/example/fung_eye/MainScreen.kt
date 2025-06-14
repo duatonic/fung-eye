@@ -35,8 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.example.fung_eye.ui.theme.FungEyeTheme
 
 @Composable
-fun MainScreen(onNavigateToIdentify: () -> Unit) {
-    FungEyeTheme {
+fun MainScreen(onNavigateToIdentify: () -> Unit, onNavigateToChatbot: () -> Unit) {    FungEyeTheme {
         var isVisible by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             isVisible = true
@@ -85,8 +84,7 @@ fun MainScreen(onNavigateToIdentify: () -> Unit) {
                             .background(Color(0xFFEEE6FF)) // light purple
                             .padding(top = 32.dp)
                     ) {
-                        ActionButtonsRow(onNavigateToIdentify)
-                    }
+                        ActionButtonsRow(onNavigateToIdentify, onNavigateToChatbot)                    }
                 }
             }
         }
@@ -198,7 +196,10 @@ fun DescriptionBox() {
 
 
 @Composable
-fun ActionButtonsRow(onNavigateToIdentify: () -> Unit) {
+fun ActionButtonsRow(
+    onNavigateToIdentify: () -> Unit,
+    onNavigateToChatbot: () -> Unit // <-- Tambahkan parameter ini
+) {
     var selectedButton by remember { mutableStateOf("Katalog Jamur") }
     val context = LocalContext.current
 
@@ -225,7 +226,10 @@ fun ActionButtonsRow(onNavigateToIdentify: () -> Unit) {
                     when (id) {
                         "Scan Jamur" -> onNavigateToIdentify()
                         "Katalog Jamur" -> Toast.makeText(context, "Membuka Katalog...", Toast.LENGTH_SHORT).show()
-                        "FungEye ChatBot" -> Toast.makeText(context, "Membuka ChatBot...", Toast.LENGTH_SHORT).show()
+
+                        // --- MULAI PERUBAHAN DI SINI ---
+                        "FungEye ChatBot" -> onNavigateToChatbot() // Panggil fungsi navigasi
+                        // --- SELESAI PERUBAHAN ---
                     }
                 }
             )
