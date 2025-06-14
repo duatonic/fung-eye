@@ -32,7 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.fung_eye.ui.theme.FungEyeTheme
 
 
 @Composable
@@ -41,54 +40,52 @@ fun MainScreen(
     onNavigateToChatbot: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
-    // --- KEMBALIKAN FUNGEYETHEME DI SINI ---
-    FungEyeTheme {
-        var isVisible by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) {
-            isVisible = true
-        }
+    // --- PEMBUNGKUS FUNGEYETHEME DIHAPUS DARI SINI ---
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
 
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            bottomBar = { AppBottomNavigation(isVisible, onNavigateToSettings = onNavigateToSettings) }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        bottomBar = { AppBottomNavigation(isVisible, onNavigateToSettings = onNavigateToSettings) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(initialOffsetY = { -it }) + fadeIn()
             ) {
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn()
-                ) {
-                    TopImageCard()
-                }
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(animationSpec = spring(stiffness = 50f))
-                ) {
-                    DescriptionBox()
-                }
+                TopImageCard()
+            }
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(animationSpec = spring(stiffness = 50f))
+            ) {
+                DescriptionBox()
+            }
 
-                Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
 
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = slideInVertically(
-                        initialOffsetY = { it },
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
-                    ) + fadeIn(animationSpec = spring(stiffness = 50f))
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
+                ) + fadeIn(animationSpec = spring(stiffness = 50f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(top = 32.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                            .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .padding(top = 32.dp)
-                    ) {
-                        ActionButtonsRow(onNavigateToIdentify, onNavigateToChatbot)
-                    }
+                    ActionButtonsRow(onNavigateToIdentify, onNavigateToChatbot)
                 }
             }
         }
@@ -205,7 +202,6 @@ fun ActionButtonsRow(
     onNavigateToChatbot: () -> Unit
 ) {
     var selectedButton by remember { mutableStateOf("Katalog Jamur") }
-    // --- PERBAIKAN: Ambil context di sini, di luar blok onClick ---
     val context = LocalContext.current
 
     Row(
@@ -222,7 +218,6 @@ fun ActionButtonsRow(
             isSelected = selectedButton == "Katalog Jamur",
             onClick = {
                 selectedButton = "Katalog Jamur"
-                // Gunakan variabel 'context' yang sudah disimpan
                 Toast.makeText(context, "Membuka Katalog...", Toast.LENGTH_SHORT).show()
             }
         )
