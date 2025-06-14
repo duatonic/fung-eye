@@ -32,7 +32,6 @@ fun SettingsScreen(
     val context = LocalContext.current
 
     // Apply the theme from the ViewModel to this specific screen
-    FungEyeTheme(darkTheme = isDarkTheme) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -117,7 +116,7 @@ fun SettingsScreen(
                 }
             }
         }
-    }
+
 }
 
 

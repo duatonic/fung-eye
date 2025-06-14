@@ -65,41 +65,41 @@ sealed class Screen {
 }
 
 class MainActivity : ComponentActivity() {
-    // Instantiate the ViewModel at the Activity level
+    // --- HANYA GUNAKAN DEKLARASI INI ---
     private val settingsViewModel: SettingsViewModel by viewModels()
 
-    // Di dalam class MainActivity
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val settingsViewModel: SettingsViewModel by viewModels()
+            // --- HAPUS DEKLARASI DUPLIKAT DARI SINI ---
+
+            // Langsung gunakan settingsViewModel dari Class
             val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
             var currentScreen by remember { mutableStateOf<Screen>(Screen.Splash) }
 
             FungEyeTheme(darkTheme = isDarkTheme) {
                 LaunchedEffect(Unit) {
-                    delay(2000) // Splash screen delay
+                    delay(2000)
                     currentScreen = Screen.Main
                 }
 
-                // --- INI ADALAH BLOK WHEN YANG SUDAH DIPERBAIKI DAN DIGABUNGKAN ---
                 when (currentScreen) {
                     is Screen.Splash -> SplashScreen()
 
                     is Screen.Main -> MainScreen(
                         onNavigateToIdentify = { currentScreen = Screen.Identify },
-                        onNavigateToSettings = { currentScreen = Screen.Settings },
                         onNavigateToChatbot = {
-                            // Aksi untuk membuka ChatbotActivity
                             val intent = Intent(this, ChatbotActivity::class.java)
                             startActivity(intent)
-                        }
+                        },
+                        onNavigateToSettings = { currentScreen = Screen.Settings }
                     )
 
                     is Screen.Identify -> FungEyeApp(
                         onNavigateHome = { currentScreen = Screen.Main }
                     )
 
+                    // Tetap teruskan instance ViewModel dari Class
                     is Screen.Settings -> SettingsScreen(
                         settingsViewModel = settingsViewModel,
                         onNavigateBack = { currentScreen = Screen.Main }

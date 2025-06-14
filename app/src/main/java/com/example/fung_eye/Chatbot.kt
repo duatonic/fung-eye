@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -36,10 +37,14 @@ data class ChatMessage(
 )
 
 class ChatbotActivity : ComponentActivity() {
+    private val settingsViewModel: SettingsViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            FungEyeTheme {
+            val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
+
+            FungEyeTheme(darkTheme = isDarkTheme) {
                 ChatbotScreen()
             }
         }

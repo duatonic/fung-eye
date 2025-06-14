@@ -35,13 +35,13 @@ import androidx.compose.ui.unit.sp
 import com.example.fung_eye.ui.theme.FungEyeTheme
 
 
-// --- LANGKAH 1: PERBARUI DEFINISI FUNGSI MAINSCREEN ---
 @Composable
 fun MainScreen(
     onNavigateToIdentify: () -> Unit,
     onNavigateToChatbot: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
+    // --- KEMBALIKAN FUNGEYETHEME DI SINI ---
     FungEyeTheme {
         var isVisible by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
@@ -50,7 +50,6 @@ fun MainScreen(
 
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            // --- LANGKAH 2: TERUSKAN onNavigateToSettings KE BOTTOM NAVIGATION ---
             bottomBar = { AppBottomNavigation(isVisible, onNavigateToSettings = onNavigateToSettings) }
         ) { paddingValues ->
             Column(
@@ -85,10 +84,9 @@ fun MainScreen(
                             .fillMaxWidth()
                             .height(180.dp)
                             .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer) // Menggunakan warna tema
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                             .padding(top = 32.dp)
                     ) {
-                        // --- LANGKAH 2: TERUSKAN onNavigateToChatbot KE ACTIONBUTTONSROW ---
                         ActionButtonsRow(onNavigateToIdentify, onNavigateToChatbot)
                     }
                 }
@@ -201,20 +199,14 @@ fun DescriptionBox() {
 }
 
 
-// --- LANGKAH 3: PERBARUI DEFINISI DAN LOGIKA ACTIONBUTTONSROW ---
 @Composable
 fun ActionButtonsRow(
     onNavigateToIdentify: () -> Unit,
-    onNavigateToChatbot: () -> Unit // <-- Parameter sudah ada
+    onNavigateToChatbot: () -> Unit
 ) {
     var selectedButton by remember { mutableStateOf("Katalog Jamur") }
+    // --- PERBAIKAN: Ambil context di sini, di luar blok onClick ---
     val context = LocalContext.current
-
-    val buttons = listOf(
-        Triple(Icons.Default.MenuBook, "Katalog Jamur", "Katalog Jamur"),
-        Triple(Icons.Default.Chat, "FungEye\nChatBot", "FungEye ChatBot"),
-        Triple(Icons.Default.CameraAlt, "Scan Jamur", "Scan Jamur")
-    )
 
     Row(
         modifier = Modifier
@@ -223,35 +215,53 @@ fun ActionButtonsRow(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        buttons.forEach { (icon, text, id) ->
-            ActionButton(
-                icon = icon,
-                text = text,
-                isSelected = selectedButton == id,
-                onClick = {
-                    selectedButton = id
-                    when (id) {
-                        "Scan Jamur" -> onNavigateToIdentify()
-                        "Katalog Jamur" -> Toast.makeText(context, "Membuka Katalog...", Toast.LENGTH_SHORT).show()
-                        "FungEye ChatBot" -> onNavigateToChatbot() // <-- Gunakan di sini
-                    }
-                }
-            )
-        }
+        // Tombol Katalog
+        ActionButton(
+            text = "Katalog Jamur",
+            iconVector = Icons.Default.MenuBook,
+            isSelected = selectedButton == "Katalog Jamur",
+            onClick = {
+                selectedButton = "Katalog Jamur"
+                // Gunakan variabel 'context' yang sudah disimpan
+                Toast.makeText(context, "Membuka Katalog...", Toast.LENGTH_SHORT).show()
+            }
+        )
+
+        // Tombol ChatBot dengan logo custom
+        ActionButton(
+            text = "FungiMate",
+            iconPainter = R.drawable.fungimatelogo,
+            isSelected = selectedButton == "FungEye ChatBot",
+            onClick = {
+                selectedButton = "FungEye ChatBot"
+                onNavigateToChatbot()
+            }
+        )
+
+        // Tombol Scan Jamur
+        ActionButton(
+            text = "Scan Jamur",
+            iconVector = Icons.Default.CameraAlt,
+            isSelected = selectedButton == "Scan Jamur",
+            onClick = {
+                selectedButton = "Scan Jamur"
+                onNavigateToIdentify()
+            }
+        )
     }
 }
 
 @Composable
 fun ActionButton(
-    icon: ImageVector,
     text: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    iconVector: ImageVector? = null,
+    iconPainter: Int? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale = if (isPressed) 0.95f else 1f
-
     val backgroundColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent
     val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     val shadowElevation = if (isSelected) 6.dp else 0.dp
@@ -268,18 +278,28 @@ fun ActionButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(imageVector = icon, contentDescription = text, tint = contentColor, modifier = Modifier.size(32.dp))
+        if (iconPainter != null) {
+            Image(
+                painter = painterResource(id = iconPainter),
+                contentDescription = text,
+                modifier = Modifier.size(32.dp)
+            )
+        } else if (iconVector != null) {
+            Icon(
+                imageVector = iconVector,
+                contentDescription = text,
+                tint = contentColor,
+                modifier = Modifier.size(32.dp)
+            )
+        }
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = text, color = contentColor, fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 14.sp)
     }
 }
 
 
-// --- LANGKAH 3: PERBARUI DEFINISI DAN LOGIKA APPBOTTOMNAVIGATION ---
 @Composable
 fun AppBottomNavigation(isVisible: Boolean, onNavigateToSettings: () -> Unit) {
-    val context = LocalContext.current
-
     AnimatedVisibility(
         visible = isVisible,
         enter = slideInVertically(
@@ -310,7 +330,7 @@ fun AppBottomNavigation(isVisible: Boolean, onNavigateToSettings: () -> Unit) {
                         modifier = Modifier.size(28.dp)
                     )
                 }
-                IconButton(onClick = onNavigateToSettings) { // <-- Gunakan di sini
+                IconButton(onClick = onNavigateToSettings) {
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Settings",
