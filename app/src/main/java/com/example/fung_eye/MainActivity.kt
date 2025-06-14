@@ -62,6 +62,7 @@ sealed class Screen {
     object Main : Screen()
     object Identify : Screen()
     object Settings : Screen()
+    object Katalog : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -71,8 +72,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // --- HAPUS DEKLARASI DUPLIKAT DARI SINI ---
-
             // Langsung gunakan settingsViewModel dari Class
             val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
             var currentScreen by remember { mutableStateOf<Screen>(Screen.Splash) }
@@ -86,13 +85,27 @@ class MainActivity : ComponentActivity() {
                 when (currentScreen) {
                     is Screen.Splash -> SplashScreen()
 
+                    // --- BLOK INI YANG DIPERBAIKI ---
                     is Screen.Main -> MainScreen(
                         onNavigateToIdentify = { currentScreen = Screen.Identify },
                         onNavigateToChatbot = {
                             val intent = Intent(this, ChatbotActivity::class.java)
                             startActivity(intent)
                         },
-                        onNavigateToSettings = { currentScreen = Screen.Settings }
+                        onNavigateToSettings = { currentScreen = Screen.Settings },
+                        onNavigateToKatalog = { currentScreen = Screen.Katalog }
+                    )
+                    // --- SELESAI PERBAIKAN ---
+
+                    is Screen.Katalog -> KatalogScreen(onNavigateBack = { currentScreen = Screen.Main })
+
+                    is Screen.Identify -> FungEyeApp(
+                        onNavigateHome = { currentScreen = Screen.Main }
+                    )
+
+                    is Screen.Settings -> SettingsScreen(
+                        settingsViewModel = settingsViewModel,
+                        onNavigateBack = { currentScreen = Screen.Main }
                     )
 
                     is Screen.Identify -> FungEyeApp(

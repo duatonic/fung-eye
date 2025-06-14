@@ -38,7 +38,8 @@ import androidx.compose.ui.unit.sp
 fun MainScreen(
     onNavigateToIdentify: () -> Unit,
     onNavigateToChatbot: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToKatalog: () -> Unit
 ) {
     // --- PEMBUNGKUS FUNGEYETHEME DIHAPUS DARI SINI ---
     var isVisible by remember { mutableStateOf(false) }
@@ -85,7 +86,7 @@ fun MainScreen(
                         .background(MaterialTheme.colorScheme.primaryContainer)
                         .padding(top = 32.dp)
                 ) {
-                    ActionButtonsRow(onNavigateToIdentify, onNavigateToChatbot)
+                    ActionButtonsRow(onNavigateToIdentify, onNavigateToChatbot, onNavigateToKatalog)
                 }
             }
         }
@@ -199,7 +200,8 @@ fun DescriptionBox() {
 @Composable
 fun ActionButtonsRow(
     onNavigateToIdentify: () -> Unit,
-    onNavigateToChatbot: () -> Unit
+    onNavigateToChatbot: () -> Unit,
+    onNavigateToKatalog: () -> Unit
 ) {
     var selectedButton by remember { mutableStateOf("Katalog Jamur") }
     val context = LocalContext.current
@@ -218,7 +220,7 @@ fun ActionButtonsRow(
             isSelected = selectedButton == "Katalog Jamur",
             onClick = {
                 selectedButton = "Katalog Jamur"
-                Toast.makeText(context, "Membuka Katalog...", Toast.LENGTH_SHORT).show()
+                onNavigateToKatalog()
             }
         )
 
