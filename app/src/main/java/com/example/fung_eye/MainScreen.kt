@@ -138,12 +138,6 @@ fun TopImageCard() {
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -162,7 +156,6 @@ fun TopImageCard() {
                         color = Color.White.copy(alpha = 0.8f)
                     )
                 }
-                Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More options", tint = Color.White)
             }
         }
     }

@@ -79,6 +79,7 @@ fun ChatbotScreen() {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
+                            
                             Text(
                                 text = "FungiMate",
                                 fontWeight = FontWeight.Bold
@@ -86,7 +87,8 @@ fun ChatbotScreen() {
                             Text(
                                 text = "• Online",
                                 fontSize = 12.sp,
-                                color = Color(0xFF34A853)
+                                color = Color(0xFF34A853),
+                                lineHeight = 14.sp
                             )
                         }
                     }
