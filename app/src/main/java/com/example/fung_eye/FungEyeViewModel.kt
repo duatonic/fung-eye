@@ -91,6 +91,7 @@ class FungEyeViewModel : ViewModel() {
                     } else {
                         resultText += "Status: Kelayakan untuk dimakan Tidak Diketahui"
                     }
+
                     // _analysisResult.value = resultText
                 } else {
                     _analysisResult.value =

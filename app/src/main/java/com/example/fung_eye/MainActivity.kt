@@ -388,6 +388,19 @@ fun FungEyeApp(
                     }
                 }
 
+                if (analysisResult.isNotEmpty()) {
+                    item {
+                        Button(
+                            onClick = {
+                                val intent = Intent(context, ChatbotActivity::class.java)
+                                context.startActivity(intent)
+                            }
+                        ) {
+                            Text("Pelajari lebih lanjut dengan FungiMate")
+                        }
+                    }
+                }
+
                 item {
                     Text(
                         text = "Disclaimer: Aplikasi Fung-Eye hanya untuk tujuan informasi. Jangan menjadikan aplikasi ini sebagai satu-satunya acuan untuk identifikasi kelayakan makan jamur. Kesalahan dalam mengidentifikasi bisa berakibat fatal. Selalu berkonsultasilah dengan pakar di bidangnya.",

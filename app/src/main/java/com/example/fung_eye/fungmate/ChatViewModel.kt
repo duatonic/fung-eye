@@ -46,7 +46,7 @@ class ChatViewModel : ViewModel() {
 
                 val thinkingMessage = ChatMessage(
                     id = botResponseId,
-                    message = "FungiMate is thinking...",
+                    message = "FungiMate sedang berpikir...",
                     isFromUser = false,
                     isTyping = true
                 )
@@ -72,7 +72,7 @@ class ChatViewModel : ViewModel() {
                         isJobDone = true
                         val botMessage = ChatMessage(
                             id = botResponseId,
-                            message = resultResponse.response ?: "Received an empty response.",
+                            message = resultResponse.response ?: "Tidak ada respon dari server.",
                             isFromUser = false
                         )
                         _chatMessages.update { list ->
@@ -103,4 +103,9 @@ class ChatViewModel : ViewModel() {
             }
         }
     }
+
+    fun HardcodedMushroom(className: String) {
+        this.sendMessage("Apa yang kamu ketahui tentang jamur ini:" + className)
+    }
 }
+
