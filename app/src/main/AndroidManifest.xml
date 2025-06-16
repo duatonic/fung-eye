@@ -16,6 +16,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.FungEye"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="31">
 
         <provider
@@ -40,7 +41,7 @@
         </activity>
 
         <activity
-            android:name=".ChatbotActivity"
+            android:name=".fungmate.ChatbotActivity"
             android:label="FungiMate Chatbot" >
         </activity>
     </application>

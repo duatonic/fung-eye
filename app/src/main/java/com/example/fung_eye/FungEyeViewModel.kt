@@ -37,6 +37,7 @@ class FungEyeViewModel : ViewModel() {
                 val imageBytes = imageFile.readBytes()
                 // NO_WRAP to prevent newlines in the Base64 string
                 val encodedFile = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+                Log.d("FungEyeViewModel", "Base64 Encoded Image: $encodedFile")
 
                 // Create the JSON request body using the data classes
                 val request = WorkflowRequest(
@@ -81,14 +82,14 @@ class FungEyeViewModel : ViewModel() {
                         return@launch
                     }
 
-                    resultText += "Terdeteksi: $className\n(Confidence: ${String.format("%.1f", confidence * 100)}%)"
+                    // resultText += "Terdeteksi: $className\n(Confidence: ${String.format("%.1f", confidence * 100)}%)"
 
                     if (className.contains("beracun", ignoreCase = true) && !className.contains("tidak", ignoreCase = true)) {
-                        resultText += "\nStatus: Kemungkinan Besar Beracun"
+                        resultText += "Status: Kemungkinan Besar Beracun"
                     } else if (className.contains("tidak beracun", ignoreCase = true) || className.contains("edible", ignoreCase = true)) {
-                        resultText += "\nStatus: Kemungkinan Besar Tidak Beracun"
+                        resultText += "Status: Kemungkinan Besar Tidak Beracun"
                     } else {
-                        resultText += "\nStatus: Kelayakan untuk dimakan Tidak Diketahui"
+                        resultText += "Status: Kelayakan untuk dimakan Tidak Diketahui"
                     }
                     // _analysisResult.value = resultText
                 } else {

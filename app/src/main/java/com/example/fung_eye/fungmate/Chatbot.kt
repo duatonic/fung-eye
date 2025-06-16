@@ -1,5 +1,6 @@
-package com.example.fung_eye
+package com.example.fung_eye.fungmate
 
+import ChatViewModel
 import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -25,19 +26,24 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.fung_eye.R
+import com.example.fung_eye.SettingsViewModel
 import com.example.fung_eye.ui.theme.FungEyeTheme
 import kotlinx.coroutines.launch
+import java.util.UUID
 
-// Data class untuk merepresentasikan satu pesan chat
+// ChatMessage data class remains the same
 data class ChatMessage(
-    val id: Long = System.currentTimeMillis(), // Tambahkan ID unik untuk setiap pesan
+    val id: String = UUID.randomUUID().toString(),
     val message: String,
-    val isFromUser: Boolean
+    val isFromUser: Boolean,
+    val isTyping: Boolean = false
 )
 
+// ChatbotActivity class remains the same
 class ChatbotActivity : ComponentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()
+    private val chatViewModel: ChatViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,7 +51,7 @@ class ChatbotActivity : ComponentActivity() {
             val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
 
             FungEyeTheme(darkTheme = isDarkTheme) {
-                ChatbotScreen()
+                ChatbotScreen(chatViewModel = chatViewModel)
             }
         }
     }
@@ -53,22 +59,24 @@ class ChatbotActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatbotScreen() {
+fun ChatbotScreen(chatViewModel: ChatViewModel) {
     val context = LocalContext.current
     var textState by remember { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    // --- PERUBAHAN 1: Hapus data hardcode dan mulai dengan daftar kosong ---
-    val chatMessages = remember { mutableStateListOf<ChatMessage>() }
+    // Collect both the messages and the new processing state
+    val chatMessages by chatViewModel.chatMessages.collectAsState()
+    val isProcessing by chatViewModel.isProcessing.collectAsState()
 
-    // Tambahkan pesan sambutan dari bot saat layar pertama kali dibuka
-    LaunchedEffect(Unit) {
-        chatMessages.add(ChatMessage(message = "Halo! Saya FungiMate, asisten jamur Anda. Ada yang bisa saya bantu?", isFromUser = false))
+    LaunchedEffect(chatMessages.size) {
+        if (chatMessages.isNotEmpty()) {
+            listState.animateScrollToItem(chatMessages.size - 1)
+        }
     }
 
     Scaffold(
         topBar = {
+            // TopAppBar remains the same
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -83,27 +91,12 @@ fun ChatbotScreen() {
                                 text = "FungiMate",
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                text = "• Online",
-                                fontSize = 12.sp,
-                                color = Color(0xFF34A853)
-                            )
                         }
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        (context as? Activity)?.finish()
-                    }) {
+                    IconButton(onClick = { (context as? Activity)?.finish() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Kembali")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* TODO: Aksi untuk volume */ }) {
-                        Icon(Icons.Filled.VolumeUp, contentDescription = "Volume")
-                    }
-                    IconButton(onClick = { /* TODO: Aksi untuk upload */ }) {
-                        Icon(Icons.Filled.Upload, contentDescription = "Upload")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -114,53 +107,38 @@ fun ChatbotScreen() {
         bottomBar = {
             OutlinedTextField(
                 value = textState,
-                onValueChange = { newText ->
-                    textState = newText
-                },
-                placeholder = { Text("Tulis pesan Anda") },
+                onValueChange = { newText -> textState = newText },
+                // --- CHANGE 1: Update placeholder text based on processing state ---
+                placeholder = { Text(if (isProcessing) "FungiMate is thinking..." else "Tulis pesan Anda") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(24.dp),
-                leadingIcon = {
-                    Icon(Icons.Filled.Mic, contentDescription = "Pesan Suara")
-                },
+                // --- CHANGE 2: Disable the entire text field while processing ---
+                enabled = !isProcessing,
                 trailingIcon = {
-                    // --- PERUBAHAN 3: Tambahkan logika pengiriman pesan ---
                     IconButton(
                         onClick = {
                             if (textState.isNotBlank()) {
-                                // Tambahkan pesan pengguna ke daftar
-                                val userMessage = ChatMessage(message = textState, isFromUser = true)
-                                chatMessages.add(userMessage)
-
-                                // Kosongkan input field
+                                chatViewModel.sendMessage(textState)
                                 textState = ""
-
-                                // Otomatis scroll ke pesan terbaru
-                                coroutineScope.launch {
-                                    listState.animateScrollToItem(chatMessages.size -1)
-                                }
-
-                                // TODO: Kirim `userMessage` ke API AI Anda di sini
-                                // dan tambahkan responsnya ke `chatMessages`
                             }
                         },
-                        enabled = textState.isNotBlank()
+                        // --- CHANGE 3: Button is enabled only when not processing AND text is not blank ---
+                        enabled = textState.isNotBlank() && !isProcessing
                     ) {
                         Icon(
                             Icons.Filled.Send,
                             contentDescription = "Kirim Pesan",
-                            tint = if (textState.isNotBlank()) MaterialTheme.colorScheme.primary else Color.Gray
+                            tint = if (textState.isNotBlank() && !isProcessing) MaterialTheme.colorScheme.primary else Color.Gray
                         )
                     }
                 }
             )
         }
     ) { paddingValues ->
-        // --- PERUBAHAN 2: Gunakan ID unik sebagai key dan teruskan listState ---
         LazyColumn(
-            state = listState, // Tambahkan state untuk kontrol scroll
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -170,7 +148,7 @@ fun ChatbotScreen() {
         ) {
             items(
                 items = chatMessages,
-                key = { it.id } // Gunakan ID sebagai key untuk performa
+                key = { it.id }
             ) { chat ->
                 MessageBubble(chatMessage = chat)
             }
@@ -178,6 +156,7 @@ fun ChatbotScreen() {
     }
 }
 
+// MessageBubble Composable remains the same
 @Composable
 fun MessageBubble(chatMessage: ChatMessage) {
     val horizontalArrangement = if (chatMessage.isFromUser) Arrangement.End else Arrangement.Start
@@ -209,14 +188,5 @@ fun MessageBubble(chatMessage: ChatMessage) {
                 modifier = Modifier.widthIn(max = 250.dp)
             )
         }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun ChatbotScreenPreview() {
-    FungEyeTheme {
-        ChatbotScreen()
     }
 }
