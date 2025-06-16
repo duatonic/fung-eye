@@ -1,14 +1,9 @@
 package com.example.fung_eye
 
-import android.content.pm.ApplicationInfo
 import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fung_eye.ImageInputValue
-import com.example.fung_eye.RoboflowApi
-import com.example.fung_eye.WorkflowInput
-import com.example.fung_eye.WorkflowRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -23,6 +18,9 @@ class FungEyeViewModel : ViewModel() {
     private val _analysisResult = MutableStateFlow("")
     val analysisResult: StateFlow<String> = _analysisResult
 
+    private val _predictedClassName = MutableStateFlow<String?>(null)
+    val predictedClassName: StateFlow<String?> = _predictedClassName
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
@@ -30,6 +28,8 @@ class FungEyeViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             _analysisResult.value = ""
+            _predictedClassName.value = null
+
             Log.d("FungEyeViewModel", "Retrofit: Analyzing image: ${imageFile.absolutePath}")
 
             try {
@@ -63,7 +63,7 @@ class FungEyeViewModel : ViewModel() {
 
                 val responseItem = fullResponse.outputs.getOrNull(0)
                 if (responseItem == null) {
-                    _analysisResult.value = "Workflow response contained no outputs."
+                    _analysisResult.value = "Tidak ada respon dari server."
                     _isLoading.value = false
                     return@launch
                 }
@@ -76,6 +76,8 @@ class FungEyeViewModel : ViewModel() {
                     val className = mainPrediction.className
                     val confidence = mainPrediction.confidence
                     // val species = speciesPrediction.className
+
+                    _predictedClassName.value = className
 
                     if (confidence < 0.70f) {
                         _analysisResult.value = "Gambar bukan merupakan jamur"
@@ -94,8 +96,7 @@ class FungEyeViewModel : ViewModel() {
 
                     // _analysisResult.value = resultText
                 } else {
-                    _analysisResult.value =
-                        "Tidak ada prediksi valid yang ditemukan dalam respons workflow."
+                    _analysisResult.value = "Tidak ada prediksi valid yang ditemukan dalam respons workflow."
                 }
 
                 val speciesPrediction = responseItem.detection_predictions?.predictions?.predictions?.maxByOrNull { it.confidence }
@@ -103,6 +104,7 @@ class FungEyeViewModel : ViewModel() {
                 if (speciesPrediction != null) {
                     // Append the species name to the final result text!
                     resultText += "\nSpesies Jamur: ${speciesPrediction.className}"
+                    _predictedClassName.value = speciesPrediction.className
                 }
                 else {
                     resultText += "\nSpesies Jamur: tidak terdeteksi"

@@ -46,8 +46,16 @@ class ChatbotActivity : ComponentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()
     private val chatViewModel: ChatViewModel by viewModels()
 
+    companion object {
+        const val EXTRA_PROMPT_QUERY = "EXTRA_PROMPT_QUERY"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val initialQuery = intent.getStringExtra(EXTRA_PROMPT_QUERY)
+        chatViewModel.handleInitialPrompt(initialQuery)
+
         setContent {
             val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
 

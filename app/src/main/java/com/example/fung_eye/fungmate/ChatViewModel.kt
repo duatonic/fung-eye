@@ -19,13 +19,30 @@ class ChatViewModel : ViewModel() {
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing = _isProcessing.asStateFlow()
 
-    init {
-        _chatMessages.value = listOf(
-            ChatMessage(
-                message = "Halo! Saya FungiMate, asisten jamur Anda. Ada yang bisa saya bantu?",
-                isFromUser = false
-            )
-        )
+    private var initialPromptHandled = false
+
+//    init {
+//
+//    }
+
+    fun handleInitialPrompt(initialQuery: String?) {
+        // If we already handled a prompt, or if the query is invalid, do nothing.
+        if (initialPromptHandled || initialQuery.isNullOrBlank()) {
+            // If there's no initial prompt, add the default welcome message.
+            if (_chatMessages.value.isEmpty()) {
+                _chatMessages.value = listOf(
+                    ChatMessage(message = "Halo! Saya FungiMate, asisten jamur Anda. Ada yang bisa saya bantu?", isFromUser = false)
+                )
+            }
+            return
+        }
+
+        // Mark as handled
+        initialPromptHandled = true
+
+        // Format the prompt and send it
+        val fullPrompt = "Apa yang kamu ketahui tentang jamur ${initialQuery}?"
+        sendMessage(fullPrompt)
     }
 
     fun sendMessage(userMessageText: String) {

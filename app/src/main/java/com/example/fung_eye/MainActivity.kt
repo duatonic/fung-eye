@@ -173,6 +173,8 @@ fun FungEyeApp(
     val analysisResult by fungEyeViewModel.analysisResult.collectAsState()
     val isLoading by fungEyeViewModel.isLoading.collectAsState()
 
+    val predictedClassName by fungEyeViewModel.predictedClassName.collectAsState()
+
     var showCameraPreview by remember { mutableStateOf(false) }
 
     val outputDirectory: File = remember {
@@ -392,7 +394,11 @@ fun FungEyeApp(
                     item {
                         Button(
                             onClick = {
-                                val intent = Intent(context, ChatbotActivity::class.java)
+                                // Create an Intent to start ChatbotActivity
+                                val intent = Intent(context, ChatbotActivity::class.java).apply {
+                                    // --- NEW: Add the class name as an "extra" to the Intent ---
+                                    putExtra(ChatbotActivity.EXTRA_PROMPT_QUERY, predictedClassName)
+                                }
                                 context.startActivity(intent)
                             }
                         ) {
