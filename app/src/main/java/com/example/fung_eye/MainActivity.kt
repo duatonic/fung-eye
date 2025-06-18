@@ -40,6 +40,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
@@ -57,7 +58,6 @@ import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-// --- ADD SETTINGS SCREEN TO NAVIGATION ---
 sealed class Screen {
     object Splash : Screen()
     object Main : Screen()
@@ -67,13 +67,11 @@ sealed class Screen {
 }
 
 class MainActivity : ComponentActivity() {
-    // --- HANYA GUNAKAN DEKLARASI INI ---
     private val settingsViewModel: SettingsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // Langsung gunakan settingsViewModel dari Class
             val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
             var currentScreen by remember { mutableStateOf<Screen>(Screen.Splash) }
 
@@ -83,10 +81,10 @@ class MainActivity : ComponentActivity() {
                     currentScreen = Screen.Main
                 }
 
+                // --- BLOK WHEN YANG SUDAH BERSIH DAN BENAR ---
                 when (currentScreen) {
                     is Screen.Splash -> SplashScreen()
 
-                    // --- BLOK INI YANG DIPERBAIKI ---
                     is Screen.Main -> MainScreen(
                         onNavigateToIdentify = { currentScreen = Screen.Identify },
                         onNavigateToChatbot = {
@@ -96,24 +94,14 @@ class MainActivity : ComponentActivity() {
                         onNavigateToSettings = { currentScreen = Screen.Settings },
                         onNavigateToKatalog = { currentScreen = Screen.Katalog }
                     )
-                    // --- SELESAI PERBAIKAN ---
 
                     is Screen.Katalog -> KatalogScreen(onNavigateBack = { currentScreen = Screen.Main })
 
                     is Screen.Identify -> FungEyeApp(
-                        onNavigateHome = { currentScreen = Screen.Main }
+                        onNavigateHome = { currentScreen = Screen.Main },
+                        onNavigateToSettings = { currentScreen = Screen.Settings }
                     )
 
-                    is Screen.Settings -> SettingsScreen(
-                        settingsViewModel = settingsViewModel,
-                        onNavigateBack = { currentScreen = Screen.Main }
-                    )
-
-                    is Screen.Identify -> FungEyeApp(
-                        onNavigateHome = { currentScreen = Screen.Main }
-                    )
-
-                    // Tetap teruskan instance ViewModel dari Class
                     is Screen.Settings -> SettingsScreen(
                         settingsViewModel = settingsViewModel,
                         onNavigateBack = { currentScreen = Screen.Main }
@@ -122,36 +110,35 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
 
 
 @Composable
 fun SplashScreen() {
-    FungEyeTheme {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = "FungEye Logo",
-                modifier = Modifier.size(200.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "FungEye",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+    // Tema sudah diterapkan oleh MainActivity, jadi tidak perlu dibungkus lagi
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = "FungEye Logo",
+            modifier = Modifier.size(200.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "FungEye",
+            fontSize = 48.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
 
-// Helper suspend function to get CameraProvider
 suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCoroutine { continuation ->
     ProcessCameraProvider.getInstance(this).also { future ->
         future.addListener({
@@ -164,7 +151,9 @@ suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCoroutin
 @Composable
 fun FungEyeApp(
     fungEyeViewModel: FungEyeViewModel = viewModel(),
-    onNavigateHome: () -> Unit
+    onNavigateHome: () -> Unit,
+    // --- TAMBAHKAN KOMA DI SINI ---
+    onNavigateToSettings: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -172,7 +161,6 @@ fun FungEyeApp(
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val analysisResult by fungEyeViewModel.analysisResult.collectAsState()
     val isLoading by fungEyeViewModel.isLoading.collectAsState()
-
     val predictedClassName by fungEyeViewModel.predictedClassName.collectAsState()
 
     var showCameraPreview by remember { mutableStateOf(false) }
@@ -229,10 +217,16 @@ fun FungEyeApp(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
+                    actions = {
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer // Tambahkan ini agar warna ikon serasi
                     )
                 )
             },
@@ -390,19 +384,19 @@ fun FungEyeApp(
                     }
                 }
 
-                if (analysisResult.isNotEmpty()) {
+                if (analysisResult.isNotEmpty() && !analysisResult.contains("tidak terdeteksi", ignoreCase = true)) {
                     item {
                         Button(
                             onClick = {
-                                // Create an Intent to start ChatbotActivity
                                 val intent = Intent(context, ChatbotActivity::class.java).apply {
-                                    // --- NEW: Add the class name as an "extra" to the Intent ---
                                     putExtra(ChatbotActivity.EXTRA_PROMPT_QUERY, predictedClassName)
                                 }
                                 context.startActivity(intent)
                             }
                         ) {
-                            Text("Pelajari lebih lanjut dengan FungiMate")
+                            Text("Tanyakan pada FungiMate")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null)
                         }
                     }
                 }
@@ -545,5 +539,4 @@ fun createTempImageFile(context: Context): File {
         ".jpg",
         storageDir
     )
-}
 }
