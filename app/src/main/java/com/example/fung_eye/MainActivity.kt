@@ -384,7 +384,7 @@ fun FungEyeApp(
                     }
                 }
 
-                if (analysisResult.isNotEmpty() && !analysisResult.contains("tidak terdeteksi", ignoreCase = true)) {
+                if (analysisResult.isNotEmpty()) {
                     item {
                         Button(
                             onClick = {
