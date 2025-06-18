@@ -41,7 +41,6 @@ fun MainScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToKatalog: () -> Unit
 ) {
-    // --- PEMBUNGKUS FUNGEYETHEME DIHAPUS DARI SINI ---
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         isVisible = true
@@ -49,7 +48,15 @@ fun MainScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-        bottomBar = { AppBottomNavigation(isVisible, onNavigateToSettings = onNavigateToSettings) }
+        // --- PERUBAHAN: Teruskan navigasi yang relevan ke setiap komponen ---
+        bottomBar = {
+            AppBottomNavigation(
+                isVisible = isVisible,
+                onNavigateToKatalog = onNavigateToKatalog,
+                onNavigateToIdentify = onNavigateToIdentify,
+                onNavigateToChatbot = onNavigateToChatbot
+            )
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -60,7 +67,8 @@ fun MainScreen(
                 visible = isVisible,
                 enter = slideInVertically(initialOffsetY = { -it }) + fadeIn()
             ) {
-                TopImageCard()
+                // Teruskan onNavigateToSettings ke TopImageCard
+                TopImageCard(onNavigateToSettings = onNavigateToSettings)
             }
             AnimatedVisibility(
                 visible = isVisible,
@@ -69,33 +77,15 @@ fun MainScreen(
                 DescriptionBox()
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = slideInVertically(
-                    initialOffsetY = { it },
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
-                ) + fadeIn(animationSpec = spring(stiffness = 50f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(top = 32.dp)
-                ) {
-                    ActionButtonsRow(onNavigateToIdentify, onNavigateToChatbot, onNavigateToKatalog)
-                }
-            }
+            // Box yang di tengah layar sudah dihapus
         }
     }
 }
 
 
+// --- PERUBAHAN: Tambahkan kembali parameter onNavigateToSettings ---
 @Composable
-fun TopImageCard() {
+fun TopImageCard(onNavigateToSettings: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -138,6 +128,15 @@ fun TopImageCard() {
                         fontWeight = FontWeight.Bold
                     )
                 }
+                // --- PERUBAHAN: Kembalikan tombol Settings di sini ---
+                IconButton(onClick = onNavigateToSettings) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -156,6 +155,7 @@ fun TopImageCard() {
                         color = Color.White.copy(alpha = 0.8f)
                     )
                 }
+                Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More options", tint = Color.White)
             }
         }
     }
@@ -190,106 +190,14 @@ fun DescriptionBox() {
 }
 
 
+// --- PERUBAHAN: AppBottomNavigation hanya untuk 3 tombol utama ---
 @Composable
-fun ActionButtonsRow(
-    onNavigateToIdentify: () -> Unit,
+fun AppBottomNavigation(
+    isVisible: Boolean,
+    onNavigateToKatalog: () -> Unit,
     onNavigateToChatbot: () -> Unit,
-    onNavigateToKatalog: () -> Unit
+    onNavigateToIdentify: () -> Unit
 ) {
-    var selectedButton by remember { mutableStateOf("Katalog Jamur") }
-    val context = LocalContext.current
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Tombol Katalog
-        ActionButton(
-            text = "Katalog Jamur",
-            iconVector = Icons.Default.MenuBook,
-            isSelected = selectedButton == "Katalog Jamur",
-            onClick = {
-                selectedButton = "Katalog Jamur"
-                onNavigateToKatalog()
-            }
-        )
-
-        // Tombol ChatBot dengan logo custom
-        ActionButton(
-            text = "FungiMate",
-            iconPainter = R.drawable.fungimatelogo,
-            isSelected = selectedButton == "FungEye ChatBot",
-            onClick = {
-                selectedButton = "FungEye ChatBot"
-                onNavigateToChatbot()
-            }
-        )
-
-        // Tombol Scan Jamur
-        ActionButton(
-            text = "Scan Jamur",
-            iconVector = Icons.Default.CameraAlt,
-            isSelected = selectedButton == "Scan Jamur",
-            onClick = {
-                selectedButton = "Scan Jamur"
-                onNavigateToIdentify()
-            }
-        )
-    }
-}
-
-@Composable
-fun ActionButton(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    iconVector: ImageVector? = null,
-    iconPainter: Int? = null
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale = if (isPressed) 0.95f else 1f
-    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent
-    val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val shadowElevation = if (isSelected) 6.dp else 0.dp
-
-    Column(
-        modifier = Modifier
-            .scale(scale)
-            .width(100.dp)
-            .shadow(elevation = shadowElevation, shape = RoundedCornerShape(16.dp))
-            .clip(RoundedCornerShape(16.dp))
-            .background(backgroundColor)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        if (iconPainter != null) {
-            Image(
-                painter = painterResource(id = iconPainter),
-                contentDescription = text,
-                modifier = Modifier.size(32.dp)
-            )
-        } else if (iconVector != null) {
-            Icon(
-                imageVector = iconVector,
-                contentDescription = text,
-                tint = contentColor,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = text, color = contentColor, fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 14.sp)
-    }
-}
-
-
-@Composable
-fun AppBottomNavigation(isVisible: Boolean, onNavigateToSettings: () -> Unit) {
     AnimatedVisibility(
         visible = isVisible,
         enter = slideInVertically(
@@ -308,27 +216,55 @@ fun AppBottomNavigation(isVisible: Boolean, onNavigateToSettings: () -> Unit) {
                     .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* Already on home */ }) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = "Home",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                IconButton(onClick = onNavigateToSettings) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
+                // Tiga tombol aksi utama
+                BottomNavItem(icon = Icons.Default.MenuBook, text = "Katalog", onClick = onNavigateToKatalog)
+                BottomNavItem(icon = Icons.Default.CameraAlt, text = "Scan", onClick = onNavigateToIdentify)
+                BottomNavItem(iconPainter = R.drawable.fungimatelogo, text = "ChatBot", onClick = onNavigateToChatbot)
+
             }
         }
     }
 }
+
+// Composable BottomNavItem tidak perlu diubah
+@Composable
+fun BottomNavItem(
+    text: String,
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+    iconPainter: Int? = null,
+) {
+    Column(
+        modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        if (iconPainter != null) {
+            Image(
+                painter = painterResource(id = iconPainter),
+                contentDescription = text,
+                modifier = Modifier.size(28.dp)
+            )
+        } else if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 12.sp
+        )
+    }
+}
+
+// Composable ActionButtonsRow dan ActionButton sudah tidak terpakai lagi
+// Anda bisa menghapusnya dari file ini
