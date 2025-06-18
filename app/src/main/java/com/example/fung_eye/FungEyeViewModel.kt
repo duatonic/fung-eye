@@ -57,61 +57,59 @@ class FungEyeViewModel : ViewModel() {
                     workflowId = roboflowWorkflowId,
                     request = request
                 )
+                Log.d("FungEyeViewModel", "Roboflow Workflow Parsed Response: ${fullResponse}")
 
-                Log.d("FungEyeViewModel", "Roboflow Workflow Parsed Response Output: ${fullResponse.outputs[0].output}")
-                Log.d("FungEyeViewModel", "Roboflow Workflow Parsed Response Detection Prediction: ${fullResponse.outputs[0].detection_predictions?.predictions}")
+                val predictionsMap = fullResponse.outputs.getOrNull(0)?.predictions?.predictions
+                Log.d("FungEyeViewModel", "Roboflow Workflow Parsed Response Map: ${predictionsMap}")
 
-                val responseItem = fullResponse.outputs.getOrNull(0)
-                if (responseItem == null) {
+                if (!predictionsMap.isNullOrEmpty()) {
+                    val topPredictionEntry = predictionsMap.maxByOrNull { it.value.confidence }
+
+                    if (topPredictionEntry != null) {
+                        val parts = topPredictionEntry.key.split("_")
+                        val edibility = parts.last()
+
+                        val nameParts = if (edibility == "edible" || edibility == "poisonous") {
+                            parts.dropLast(1) // Drop the last element
+                        } else {
+                            parts // Keep all parts
+                        }
+
+                        val className = nameParts.joinToString(" ")
+                        val confidence = topPredictionEntry.value.confidence
+                        _predictedClassName.value = className
+
+                        if (confidence < 0.04f) {
+                            _analysisResult.value = "Gambar bukan merupakan jamur"
+                            return@launch
+                        }
+
+//                        var confidence_percentage = confidence * 1000
+//                        if (confidence_percentage >= 100f) {
+//                            confidence_percentage /= 10
+//                        }
+
+                        var resultText = "Terdeteksi Jamur: ${className} (Confidence: ${String.format("%.1f", confidence * 100f)}%)\n"
+
+                        if (edibility == "poisonous") {
+                            resultText += "Status: Kemungkinan Besar Beracun"
+                        } else if (edibility == "edible") {
+                            resultText += "Status: Kemungkinan Besar Tidak Beracun"
+                        } else {
+                            resultText += "Status: Kelayakan untuk dimakan Tidak Diketahui"
+                        }
+
+                        _analysisResult.value = resultText
+                    }
+                    else {
+                        _analysisResult.value = "Tidak ada prediksi valid yang ditemukan dalam respons workflow."
+                    }
+                }
+                else {
                     _analysisResult.value = "Tidak ada respon dari server."
                     _isLoading.value = false
                     return@launch
                 }
-
-                val mainPrediction = responseItem.output?.predictions?.maxByOrNull { it.confidence }
-                var resultText = ""
-
-                // Access the list 'outputs' from the fullResponse
-                if (mainPrediction != null) {
-                    val className = mainPrediction.className
-                    val confidence = mainPrediction.confidence
-                    // val species = speciesPrediction.className
-
-                    _predictedClassName.value = className
-
-                    if (confidence < 0.70f) {
-                        _analysisResult.value = "Gambar bukan merupakan jamur"
-                        return@launch
-                    }
-
-                    // resultText += "Terdeteksi: $className\n(Confidence: ${String.format("%.1f", confidence * 100)}%)"
-
-                    if (className.contains("beracun", ignoreCase = true) && !className.contains("tidak", ignoreCase = true)) {
-                        resultText += "Status: Kemungkinan Besar Beracun"
-                    } else if (className.contains("tidak beracun", ignoreCase = true) || className.contains("edible", ignoreCase = true)) {
-                        resultText += "Status: Kemungkinan Besar Tidak Beracun"
-                    } else {
-                        resultText += "Status: Kelayakan untuk dimakan Tidak Diketahui"
-                    }
-
-                    // _analysisResult.value = resultText
-                } else {
-                    _analysisResult.value = "Tidak ada prediksi valid yang ditemukan dalam respons workflow."
-                }
-
-                val speciesPrediction = responseItem.detection_predictions?.predictions?.predictions?.maxByOrNull { it.confidence }
-
-                if (speciesPrediction != null) {
-                    // Append the species name to the final result text!
-                    resultText += "\nSpesies Jamur: ${speciesPrediction.className}"
-                    _predictedClassName.value = speciesPrediction.className
-                }
-                else {
-                    resultText += "\nSpesies Jamur: tidak terdeteksi"
-                }
-
-                _analysisResult.value = resultText
-
             } catch (e: HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 Log.e("FungEyeViewModel", "API HTTP Error: ${e.message()}, Body: $errorBody")

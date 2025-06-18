@@ -29,47 +29,33 @@ data class ImageInputValue(
 
 // --- Data Classes for the Workflow JSON Response ---
 data class RoboflowFullResponse(
-    val outputs: List<WorkflowResponseItem>
+    // The field name "outputs" must match the JSON key. Its value is a List.
+    val outputs: List<OutputItem>
+)
+data class OutputItem(
+    // This object contains a single key "predictions" which holds the main payload.
+    val predictions: PredictionPayload?
 )
 
-data class WorkflowResponseItem(
-    // main output block containing the final predictions
-    val output: OutputData?,
-
-    val detection_predictions: DetectionPredictionsData?
-)
-
-data class OutputData(
-    val image: ImageDetails?,
-    val predictions: List<WorkflowPrediction>?
-)
-
-data class DetectionPredictionsData(
+data class PredictionPayload(
     @SerializedName("inference_id")
     val inferenceId: String?,
-    val predictions: PredictionsObject?
+    val time: Double?,
+    val image: ImageDetails?,
+
+    // The 'predictions' object has dynamic keys (mushroom names), so we use a Map.
+    val predictions: Map<String, ClassificationDetails>?
 )
 
-data class PredictionsObject(
-    val image: ImageDetails?,
-    val predictions: List<WorkflowPrediction>?
+data class ClassificationDetails(
+    val confidence: Double,
+    @SerializedName("class_id")
+    val classId: Int
 )
 
 data class ImageDetails(
-    val width: Int?,
-    val height: Int?
-)
-
-data class WorkflowPrediction(
-    val confidence: Double,
-    val class_id: Int,
-    @SerializedName("class")
-    val className: String,
-    val x: Double?,
-    val y: Double?,
-    val width: Double?,
-    val height: Double?,
-    val detection_id: String?
+    val width: Int,
+    val height: Int
 )
 
 // --- Retrofit API Service and Instance ---

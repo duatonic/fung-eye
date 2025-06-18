@@ -390,7 +390,7 @@ fun FungEyeApp(
                     }
                 }
 
-                if (analysisResult.isNotEmpty()) {
+                if (analysisResult.isNotEmpty() && !analysisResult.contains("bukan merupakan jamur")) {
                     item {
                         Button(
                             onClick = {
