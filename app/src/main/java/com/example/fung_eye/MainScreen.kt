@@ -40,6 +40,7 @@ fun MainScreen(
     onNavigateToChatbot: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToKatalog: () -> Unit
+    // Removed onNavigateToIndonesianFood
 ) {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -48,7 +49,6 @@ fun MainScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-        // --- PERUBAHAN: Teruskan navigasi yang relevan ke setiap komponen ---
         bottomBar = {
             AppBottomNavigation(
                 isVisible = isVisible,
@@ -67,7 +67,6 @@ fun MainScreen(
                 visible = isVisible,
                 enter = slideInVertically(initialOffsetY = { -it }) + fadeIn()
             ) {
-                // Teruskan onNavigateToSettings ke TopImageCard
                 TopImageCard(onNavigateToSettings = onNavigateToSettings)
             }
             AnimatedVisibility(
@@ -76,14 +75,12 @@ fun MainScreen(
             ) {
                 DescriptionBox()
             }
-
-            // Box yang di tengah layar sudah dihapus
+            // Removed the Indonesian food button from MainScreen
         }
     }
 }
 
 
-// --- PERUBAHAN: Tambahkan kembali parameter onNavigateToSettings ---
 @Composable
 fun TopImageCard(onNavigateToSettings: () -> Unit) {
     Box(
@@ -128,7 +125,6 @@ fun TopImageCard(onNavigateToSettings: () -> Unit) {
                         fontWeight = FontWeight.Bold
                     )
                 }
-                // --- PERUBAHAN: Kembalikan tombol Settings di sini ---
                 IconButton(onClick = onNavigateToSettings) {
                     Icon(
                         imageVector = Icons.Default.Settings,
@@ -190,7 +186,6 @@ fun DescriptionBox() {
 }
 
 
-// --- PERUBAHAN: AppBottomNavigation hanya untuk 3 tombol utama ---
 @Composable
 fun AppBottomNavigation(
     isVisible: Boolean,
@@ -220,7 +215,6 @@ fun AppBottomNavigation(
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Tiga tombol aksi utama
                 BottomNavItem(icon = Icons.Default.MenuBook, text = "Katalog", onClick = onNavigateToKatalog)
                 BottomNavItem(icon = Icons.Default.CameraAlt, text = "Scan", onClick = onNavigateToIdentify)
                 BottomNavItem(iconPainter = R.drawable.fungimatelogo, text = "ChatBot", onClick = onNavigateToChatbot)
@@ -230,7 +224,6 @@ fun AppBottomNavigation(
     }
 }
 
-// Composable BottomNavItem tidak perlu diubah
 @Composable
 fun BottomNavItem(
     text: String,
@@ -265,6 +258,3 @@ fun BottomNavItem(
         )
     }
 }
-
-// Composable ActionButtonsRow dan ActionButton sudah tidak terpakai lagi
-// Anda bisa menghapusnya dari file ini
