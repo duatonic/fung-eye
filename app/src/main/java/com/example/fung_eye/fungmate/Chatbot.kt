@@ -116,7 +116,7 @@ fun ChatbotScreen(chatViewModel: ChatViewModel) {
             OutlinedTextField(
                 value = textState,
                 onValueChange = { newText -> textState = newText },
-                placeholder = { Text(if (isProcessing) "FungiMate is thinking..." else "Tulis pesan Anda") },
+                placeholder = { Text(if (isProcessing) "FungiMate sedang berpikir..." else "Tulis pesan Anda") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),

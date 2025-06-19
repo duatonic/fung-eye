@@ -344,9 +344,7 @@ class MainActivity : ComponentActivity() {
                                     Text(
                                         text = analysisResult,
                                         style = MaterialTheme.typography.bodyLarge,
-                                        color = if (analysisResult.contains("beracun", ignoreCase = true))
-                                            MaterialTheme.colorScheme.error
-                                        else MaterialTheme.colorScheme.onSurface,
+                                        color = if (analysisResult.contains("poisonous", ignoreCase = true)) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
