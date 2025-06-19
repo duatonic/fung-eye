@@ -123,6 +123,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
+@Composable
+fun SplashScreen() {
+    FungEyeTheme {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "FungEye Logo",
+                modifier = Modifier.size(200.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "FungEye",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+
 // Helper suspend function to get CameraProvider
 suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCoroutine { continuation ->
     ProcessCameraProvider.getInstance(this).also { future ->
@@ -195,7 +223,7 @@ fun FungEyeApp(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Identifikasi Jamur", fontWeight = FontWeight.Bold) },
+                    title = { Text("🍄 Identifikasi Jamur", fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateHome) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -505,17 +533,17 @@ fun CameraView(
     }
 }
 
-    fun createTempImageFile(context: Context): File {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val imageFileName = "TEMP_JPEG_${timeStamp}_"
-        val storageDir: File? = context.cacheDir
-        if (storageDir != null && !storageDir.exists()) {
-            storageDir.mkdirs()
-        }
-        return File.createTempFile(
-            imageFileName,
-            ".jpg",
-            storageDir
-        )
+fun createTempImageFile(context: Context): File {
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    val imageFileName = "TEMP_JPEG_${timeStamp}_"
+    val storageDir: File? = context.cacheDir
+    if (storageDir != null && !storageDir.exists()) {
+        storageDir.mkdirs()
     }
+    return File.createTempFile(
+        imageFileName,
+        ".jpg",
+        storageDir
+    )
+}
 }
