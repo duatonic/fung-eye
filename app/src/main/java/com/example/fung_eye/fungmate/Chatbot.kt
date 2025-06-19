@@ -33,7 +33,7 @@ import com.example.fung_eye.ui.theme.FungEyeTheme
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-// ChatMessage data class remains the same
+// ChatMessage data class
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val message: String,
@@ -41,7 +41,7 @@ data class ChatMessage(
     val isTyping: Boolean = false
 )
 
-// ChatbotActivity class remains the same
+// ChatbotActivity class
 class ChatbotActivity : ComponentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()
     private val chatViewModel: ChatViewModel by viewModels()
@@ -85,7 +85,6 @@ fun ChatbotScreen(chatViewModel: ChatViewModel) {
 
     Scaffold(
         topBar = {
-            // TopAppBar remains the same
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -117,13 +116,12 @@ fun ChatbotScreen(chatViewModel: ChatViewModel) {
             OutlinedTextField(
                 value = textState,
                 onValueChange = { newText -> textState = newText },
-                // --- CHANGE 1: Update placeholder text based on processing state ---
                 placeholder = { Text(if (isProcessing) "FungiMate is thinking..." else "Tulis pesan Anda") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(24.dp),
-                // --- CHANGE 2: Disable the entire text field while processing ---
+                // Disable the entire text field while processing
                 enabled = !isProcessing,
                 trailingIcon = {
                     IconButton(
@@ -133,7 +131,6 @@ fun ChatbotScreen(chatViewModel: ChatViewModel) {
                                 textState = ""
                             }
                         },
-                        // --- CHANGE 3: Button is enabled only when not processing AND text is not blank ---
                         enabled = textState.isNotBlank() && !isProcessing
                     ) {
                         Icon(
@@ -165,7 +162,7 @@ fun ChatbotScreen(chatViewModel: ChatViewModel) {
     }
 }
 
-// MessageBubble Composable remains the same
+// MessageBubble Composable
 @Composable
 fun MessageBubble(chatMessage: ChatMessage) {
     val horizontalArrangement = if (chatMessage.isFromUser) Arrangement.End else Arrangement.Start

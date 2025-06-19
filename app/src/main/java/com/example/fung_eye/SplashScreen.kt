@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.sp
 import com.example.fung_eye.ui.theme.FungEyeTheme
 
 @Composable
-fun SplashScreen(onTimeout: () -> Unit) {
+fun SplashScreen() {
     FungEyeTheme {
         Column(
             modifier = Modifier

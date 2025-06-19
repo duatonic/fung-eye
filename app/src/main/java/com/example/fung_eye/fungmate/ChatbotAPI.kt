@@ -53,12 +53,12 @@ interface ApiService {
 }
 
 
-// ------------------- Updated Retrofit Client Singleton -------------------
+// ------------------- Retrofit Client Singleton -------------------
 
 object RetrofitClient {
     private const val BASE_URL = "http://10.0.2.2:5000"
 
-    // Create a custom OkHttpClient to set reasonable timeouts.
+    // Custom OkHttpClient to set reasonable timeouts.
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)

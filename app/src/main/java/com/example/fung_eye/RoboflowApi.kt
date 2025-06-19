@@ -23,7 +23,7 @@ data class WorkflowInput(
 
 data class ImageInputValue(
     val type: String,
-    val value: String // Base64 encoded image string
+    val value: String
 )
 
 

@@ -15,18 +15,14 @@ class ChatViewModel : ViewModel() {
     private val _chatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val chatMessages = _chatMessages.asStateFlow()
 
-    // --- NEW STATE: Tracks if a response is being processed ---
+    // Tracks if a response is being processed
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing = _isProcessing.asStateFlow()
 
     private var initialPromptHandled = false
 
-//    init {
-//
-//    }
-
     fun handleInitialPrompt(initialQuery: String?) {
-        // If we already handled a prompt, or if the query is invalid, do nothing.
+        // If prompt is handled, or if the query is invalid, do nothing.
         if (initialPromptHandled || initialQuery.isNullOrBlank()) {
             // If there's no initial prompt, add the default welcome message.
             if (_chatMessages.value.isEmpty()) {
@@ -37,10 +33,8 @@ class ChatViewModel : ViewModel() {
             return
         }
 
-        // Mark as handled
         initialPromptHandled = true
 
-        // Format the prompt and send it
         val fullPrompt = "Apa yang kamu ketahui tentang jamur ${initialQuery}?"
         sendMessage(fullPrompt)
     }
@@ -50,14 +44,13 @@ class ChatViewModel : ViewModel() {
         if (userMessageText.isBlank() || _isProcessing.value) return
 
         viewModelScope.launch {
-            // --- SET STATE TO PROCESSING ---
             _isProcessing.value = true
 
             // Create a stable ID and a placeholder message for the bot's response
             val botResponseId = UUID.randomUUID().toString()
 
             try {
-                // Add the user's message to the UI immediately
+                // Add the user's message to the UI
                 val userMessage = ChatMessage(message = userMessageText, isFromUser = true)
                 _chatMessages.update { it + userMessage }
 
@@ -69,7 +62,7 @@ class ChatViewModel : ViewModel() {
                 )
                 _chatMessages.update { it + thinkingMessage }
 
-                // Step 1: Start the process and get a job ID
+                // Start the process and get a job ID
                 val startRequest = RequestModel(userMessage.message)
                 val startResponse = RetrofitClient.apiService.startChatProcess(startRequest)
                 val jobId = startResponse.jobId
@@ -78,7 +71,7 @@ class ChatViewModel : ViewModel() {
                 var attempts = 0
                 val maxAttempts = 36 // 32 attempts * 5s = 180s timeout
 
-                // Step 2: Poll for the result in a loop
+                // Poll for the result in a loop
                 while (!isJobDone && attempts < maxAttempts) {
                     attempts++
                     delay(5000L)
@@ -103,7 +96,6 @@ class ChatViewModel : ViewModel() {
                 }
 
             } catch (e: Exception) {
-                // Handle any error
                 val errorMessage = ChatMessage(
                     id = botResponseId,
                     message = "Maaf, terjadi kesalahan: ${e.message}",
@@ -113,16 +105,10 @@ class ChatViewModel : ViewModel() {
                     list.map { if (it.id == botResponseId) errorMessage else it }
                 }
             } finally {
-                // --- RESET STATE ---
-                // This block ensures isProcessing is always set back to false,
-                // even if an error occurs.
+                // This block ensures isProcessing is always set back to false, even if an error occurs.
                 _isProcessing.value = false
             }
         }
-    }
-
-    fun HardcodedMushroom(className: String) {
-        this.sendMessage("Apa yang kamu ketahui tentang jamur ini:" + className)
     }
 }
 
