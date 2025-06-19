@@ -63,7 +63,6 @@ sealed class Screen {
     object Identify : Screen()
     object Settings : Screen()
     object Katalog : Screen()
-    // Removed IndonesianFood as it's now part of KatalogScreen
 }
 
 class MainActivity : ComponentActivity() {
@@ -92,13 +91,13 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToSettings = { currentScreen = Screen.Settings },
                         onNavigateToKatalog = { currentScreen = Screen.Katalog }
-                        // Removed onNavigateToIndonesianFood
                     )
 
                     is Screen.Katalog -> KatalogScreen(onNavigateBack = { currentScreen = Screen.Main })
 
                     is Screen.Identify -> FungEyeApp(
-                        onNavigateHome = { currentScreen = Screen.Main }
+                        onNavigateHome = { currentScreen = Screen.Main },
+                        onNavigateToSettings = { currentScreen = Screen.Settings }
                     )
 
                     is Screen.Settings -> SettingsScreen(
@@ -109,34 +108,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-
-    @Composable
-    fun SplashScreen() {
-        FungEyeTheme {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "FungEye Logo",
-                    modifier = Modifier.size(200.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "FungEye",
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
-
 
     // Helper suspend function to get CameraProvider
     suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCoroutine { continuation ->
@@ -151,7 +122,8 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun FungEyeApp(
         fungEyeViewModel: FungEyeViewModel = viewModel(),
-        onNavigateHome: () -> Unit
+        onNavigateHome: () -> Unit,
+        onNavigateToSettings: () -> Unit
     ) {
         val context = LocalContext.current
         val coroutineScope = rememberCoroutineScope()
@@ -210,10 +182,15 @@ class MainActivity : ComponentActivity() {
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text("🍄 Identifikasi Jamur", fontWeight = FontWeight.Bold) },
+                        title = { Text("Identifikasi Jamur", fontWeight = FontWeight.Bold) },
                         navigationIcon = {
                             IconButton(onClick = onNavigateHome) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = onNavigateToSettings) {
+                                Icon(Icons.Filled.Settings, contentDescription = "Settings")
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
