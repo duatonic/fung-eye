@@ -7,14 +7,11 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import retrofit2.HttpException
 import java.io.File
 
 class FungEyeViewModel : ViewModel() {
-    private val roboflowApiKey = BuildConfig.ROBOFLOW_API_KEY
-    private val roboflowWorkspaceName = BuildConfig.ROBOFLOW_WORKSPACE_NAME
-    private val roboflowWorkflowId = BuildConfig.ROBOFLOW_WORKFLOW_ID
-
     private val _analysisResult = MutableStateFlow("")
     val analysisResult: StateFlow<String> = _analysisResult
 
@@ -30,6 +27,7 @@ class FungEyeViewModel : ViewModel() {
             _analysisResult.value = ""
             _predictedClassName.value = null
 
+            Log.d("FungEyeViewModel", "Starting image analysis with custom backend.")
             Log.d("FungEyeViewModel", "Retrofit: Analyzing image: ${imageFile.absolutePath}")
 
             try {
@@ -40,76 +38,59 @@ class FungEyeViewModel : ViewModel() {
                 Log.d("FungEyeViewModel", "Base64 Encoded Image: $encodedFile")
 
                 // Create the JSON request body using the data classes
-                val request = WorkflowRequest(
-                    api_key = roboflowApiKey,
-                    inputs = WorkflowInput(
-                        image = ImageInputValue(
-                            type = "base64",
-                            value = encodedFile
-                        )
-                    )
-                )
+                val request = IdentifierRequestModel(image = encodedFile)
+                val startResponse = ImageIdentifierApiClient.instance.startIdentifierProcess(request)
+                val jobId = startResponse.jobId
+                Log.d("FungEyeViewModel", "Started image identification job with ID: $jobId")
 
-                // Call the Retrofit API service
-                Log.d("FungEyeViewModel", "Sending Base64 image to Roboflow Workflow...")
-                val fullResponse = RoboflowApi.instance.analyzeWorkflow(
-                    workspaceName = roboflowWorkspaceName,
-                    workflowId = roboflowWorkflowId,
-                    request = request
-                )
-                Log.d("FungEyeViewModel", "Roboflow Workflow Parsed Response: ${fullResponse}")
+                var isJobDone = false
+                var attempts = 0
+                val maxAttempts = 36
 
-                val predictionsMap = fullResponse.outputs.getOrNull(0)?.predictions?.predictions
-                Log.d("FungEyeViewModel", "Roboflow Workflow Parsed Response Map: ${predictionsMap}")
+                while (!isJobDone && attempts < maxAttempts) {
+                    attempts++
+                    delay(5000L) // Wait 5 seconds
 
-                if (!predictionsMap.isNullOrEmpty()) {
-                    val topPredictionEntry = predictionsMap.maxByOrNull { it.value.confidence }
+                    Log.d("FungEyeViewModel", "Polling for job $jobId, attempt $attempts")
+                    val resultResponse = ImageIdentifierApiClient.instance.getJobResult(jobId)
 
-                    if (topPredictionEntry != null) {
-                        val parts = topPredictionEntry.key.split("_")
-                        val edibility = parts.last()
+                    if (resultResponse.status.equals("complete", ignoreCase = true)) {
+                        isJobDone = true
+                        val backendResponse = resultResponse.response
+                        Log.d("FungEyeViewModel", "Job complete. Response: $backendResponse")
 
-                        val nameParts = if (edibility == "edible" || edibility == "poisonous") {
-                            parts.dropLast(1) // Drop the last element
+                        // 4. Parse the backend's custom response
+                        if (backendResponse.isNullOrBlank()) {
+                            _analysisResult.value = "Server mengembalikan respon kosong."
+                        } else if (backendResponse.contains("error_not_a_mushroom_image", ignoreCase = true)) {
+                            _analysisResult.value = "Gambar bukan merupakan jamur."
                         } else {
-                            parts // Keep all parts
+                            // Expected format: "Amanita Muscaria_Poisonous"
+                            val parts = backendResponse.split("_")
+                            if (parts.size >= 2) {
+                                val name = parts.dropLast(1).joinToString(" ").trim()
+                                val toxicity = parts.last().trim()
+
+                                _predictedClassName.value = name
+
+                                var resultText = "Terdeteksi Jamur: $name\n"
+                                resultText += when {
+                                    toxicity.equals("Poisonous", ignoreCase = true) -> "Status: Kemungkinan Besar Beracun"
+                                    toxicity.equals("Edible", ignoreCase = true) -> "Status: Kemungkinan Besar Tidak Beracun"
+                                    else -> "Status: Kelayakan untuk dimakan Tidak Diketahui"
+                                }
+                                _analysisResult.value = resultText
+                            } else {
+                                _analysisResult.value = "Format respons tidak dikenali: $backendResponse"
+                            }
                         }
-
-                        val className = nameParts.joinToString(" ")
-                        val confidence = topPredictionEntry.value.confidence
-                        _predictedClassName.value = className
-
-                        if (confidence < 0.04f) {
-                            _analysisResult.value = "Gambar bukan merupakan jamur"
-                            return@launch
-                        }
-
-//                        var confidence_percentage = confidence * 1000
-//                        if (confidence_percentage >= 100f) {
-//                            confidence_percentage /= 10
-//                        }
-
-                        var resultText = "Terdeteksi Jamur: ${className} (Confidence: ${String.format("%.1f", confidence * 100f)}%)\n"
-
-                        if (edibility == "poisonous") {
-                            resultText += "Status: Kemungkinan Besar Beracun"
-                        } else if (edibility == "edible") {
-                            resultText += "Status: Kemungkinan Besar Tidak Beracun"
-                        } else {
-                            resultText += "Status: Kelayakan untuk dimakan Tidak Diketahui"
-                        }
-
-                        _analysisResult.value = resultText
-                    }
-                    else {
-                        _analysisResult.value = "Tidak ada prediksi valid yang ditemukan dalam respons workflow."
                     }
                 }
-                else {
-                    _analysisResult.value = "Tidak ada respon dari server."
-                    _isLoading.value = false
-                    return@launch
+
+                if (!isJobDone) {
+                    _analysisResult.value = "Analisa gambar timeout. Silakan coba lagi."
                 }
+
             } catch (e: HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 Log.e("FungEyeViewModel", "API HTTP Error: ${e.message()}, Body: $errorBody")

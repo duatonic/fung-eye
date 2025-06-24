@@ -42,6 +42,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -339,13 +340,15 @@ class MainActivity : ComponentActivity() {
                                         text = "Hasil Analisa:",
                                         style = MaterialTheme.typography.titleLarge,
                                         color = MaterialTheme.colorScheme.primary,
+                                        textAlign = TextAlign.Center,
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = analysisResult,
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = if (analysisResult.contains("poisonous", ignoreCase = true)) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.Medium
+                                        fontWeight = FontWeight.Medium,
+                                        textAlign = TextAlign.Center,
                                     )
                                 }
                             }
