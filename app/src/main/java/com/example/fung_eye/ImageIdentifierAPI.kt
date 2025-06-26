@@ -44,8 +44,7 @@ interface ImageIdentifierApiService {
  * A distinct Retrofit client object for the image identification service.
  */
 object ImageIdentifierApiClient {
-    // private const val BASE_URL = "http://10.0.2.2:5000"
-    private const val BASE_URL = "http://192.168.1.17:5000"
+    private const val BASE_URL = "http://10.0.2.2:5000"
 
     // Custom OkHttpClient to set reasonable timeouts.
     private val okHttpClient = OkHttpClient.Builder()
